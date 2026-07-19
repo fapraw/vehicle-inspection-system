@@ -1,15 +1,33 @@
 from flask import Flask, render_template
+from flask_sqlalchemy import SQLAlchemy
 import os
 
-# สร้าง Flask App
 app = Flask(__name__)
 
-# หน้าแรก
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+db = SQLAlchemy(app)
+
+
+class Inspection(db.Model):
+    __tablename__ = "inspection"
+
+    id = db.Column(db.Integer, primary_key=True)
+    inspector = db.Column(db.String(100))
+    license_plate = db.Column(db.String(20))
+    vehicle = db.Column(db.String(100))
+    result = db.Column(db.String(20))
+
+
+with app.app_context():
+    db.create_all()
+
+
 @app.route("/")
 def home():
     return render_template("index.html")
 
-# เริ่มต้นโปรแกรม
-if __name__ == '__main__':
-    # ใส่ host='0.0.0.0' เพื่อเปิดให้เครื่องอื่นเข้ามาใช้งานได้
-    app.run(host='0.0.0.0', port=5000, debug=False)
+
+if __name__ == "__main__":
+    app.run(debug=True)
