@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Vehicle Inspection</title>
+    <!-- แก้ไข: เพิ่มเครื่องหมายปิดแท็ก > ที่ปลายแถว -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <!-- เริ่มต้น Container ใหญ่ครอบคลุมเนื้อหาทั้งหมด -->
+    <div class="container">
+
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <h1>🚗 Vehicle Inspection</h1>
+                <p>ระบบตรวจสภาพรถ</p>
+            </div>
+
+            <div class="header-right">
+                <div class="datetime">
+                    <label>วันที่</label>
+                    <span id="currentDate"></span>
+                </div>
+                <div class="datetime">
+                    <label>เวลา</label>
+                    <span id="currentTime"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ข้อมูลทั่วไป -->
+        <div class="card">
+            <h2>ข้อมูลทั่วไป</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>ชื่อบริษัท</label>
+                    <input type="text" id="company" placeholder="กรอกชื่อบริษัท">
+                </div>
+                <div class="form-group">
+                    <label>ทะเบียนรถ</label>
+                    <input type="text" id="plate" placeholder="เช่น 70-1234">
+                </div>
+                <div class="form-group">
+                    <label>สถานี</label>
+                    <input type="text" id="station" placeholder="เช่น สถานี A">
+                </div>
+                <div class="form-group">
+                    <label>ผู้ตรวจ</label>
+                    <input type="text" id="inspector" placeholder="ชื่อผู้ตรวจ">
+                </div>
+            </div>
+        </div> <!-- แก้ไข: ลบ </div> ที่เคยเกินตรงนี้ออก เพื่อไม่ให้หลุดคอนเทนเนอร์ -->
+
+        <!-- รายการตรวจ -->
+        <div class="card">
+            <h2>📋 รายการตรวจ</h2>
+            <div class="inspection-grid">
+                {% for i in range(1,13) %}
+                <div class="inspection-card">
+                    <h3>{{ i }}</h3>
+                    <div class="image-box">
+                        <img id="preview{{ i }}" class="preview-image">
+                        <label for="photo{{ i }}" class="upload-btn">
+                            📷 เพิ่มรูป
+                        </label>
+                        <!-- แก้ไข: ฟังก์ชัน onchange ส่งตัวแปร i ให้ถูกต้องในรูปแบบ Jinja2 -->
+                        <input type="file" id="photo{{ i }}" accept="image/*" onchange="previewImage(this, '{{ i }}')" hidden>
+                    </div>
+
+                    <div class="status">
+                        <label>
+                            <input type="radio" name="status{{ i }}" value="ผ่าน"> ผ่าน
+                        </label>
+                        <label>
+                            <input type="radio" name="status{{ i }}" value="ไม่ผ่าน"> ไม่ผ่าน
+                        </label>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- สรุปผล (แก้ไข: ย้ายขึ้นมาอยู่ก่อนปิดสคริปต์และคอนเทนเนอร์) -->
+        <div class="card">
+            <h2>📄 สรุปผล</h2>
+            <div class="summary-box">
+                <p>ข้าพเจ้าได้ทำการตรวจเช็คสภาพรถเรียบร้อยแล้ว</p>
+                <p>หากเกิดความเสียหายจากการไม่ตรวจสอบ บริษัทจะไม่รับผิดชอบทุกกรณี</p>
+                <div class="accept-box">
+                    <input type="checkbox" id="accept">
+                    <label for="accept">ยอมรับเงื่อนไข</label>
+                </div>
+                <button id="submitBtn" class="submit-btn">ยืนยันการส่ง</button>
+            </div>
+        </div>
+
+        <!-- Certificate -->
+        <div class="card certificate-card">
+            <button class="certificate-btn">Certificate</button>
+        </div>
+
+    </div> <!-- ปิด .container ใหญ่ตรงนี้ (หลังเนื้อหาทั้งหมดเสร็จสิ้น) -->
+
+    <!-- โหลดสคริปต์ไว้ล่างสุดก่อนปิด body -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>
