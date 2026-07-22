@@ -1,34 +1,91 @@
-// ================================
-// แสดงวันที่และเวลาอัตโนมัติ
-// ================================
+// ======================================
+// แสดงวันที่และเวลา
+// ======================================
 
 function updateDateTime() {
 
     const now = new Date();
 
-    // วันที่
     const date = now.toLocaleDateString("th-TH", {
         day: "2-digit",
         month: "2-digit",
         year: "numeric"
     });
 
-    // เวลา
     const time = now.toLocaleTimeString("th-TH", {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit"
     });
 
-    document.getElementById("currentDate").textContent = date;
-    document.getElementById("currentTime").textContent = time;
+    const dateEl = document.getElementById("currentDate");
+    const timeEl = document.getElementById("currentTime");
+
+    if (dateEl) dateEl.textContent = date;
+    if (timeEl) timeEl.textContent = time;
+
 }
 
-// เรียกใช้ทันที
 updateDateTime();
-
-// อัปเดตทุก 1 วินาที
 setInterval(updateDateTime, 1000);
+
+
+// ======================================
+// Multi Step Form
+// ======================================
+
+let currentStep = 1;
+const totalStep = 3;
+
+function showStep(step){
+
+    document.querySelectorAll(".step").forEach(function(page){
+
+        page.classList.remove("active");
+
+    });
+
+    document
+        .getElementById("step"+step)
+        .classList
+        .add("active");
+
+    currentStep = step;
+
+    window.scrollTo({
+
+        top:0,
+        behavior:"smooth"
+
+    });
+
+}
+
+function nextStep(){
+
+    if(currentStep < totalStep){
+
+        showStep(currentStep + 1);
+
+    }
+
+}
+
+function prevStep(){
+
+    if(currentStep > 1){
+
+        showStep(currentStep - 1);
+
+    }
+
+}
+
+
+// ======================================
+// Preview รูปภาพ
+// ======================================
+
 function previewImage(input, number){
 
     const file = input.files[0];
@@ -39,13 +96,19 @@ function previewImage(input, number){
 
     reader.onload = function(e){
 
-        const img = document.getElementById("preview"+number);
+        const preview = document.getElementById("preview"+number);
 
-        img.src = e.target.result;
+        preview.src = e.target.result;
 
-        img.style.display = "block";
+        preview.style.display = "block";
 
-        input.previousElementSibling.style.display = "none";
+        const text = document.getElementById("placeholder"+number);
+
+        if(text){
+
+            text.style.display="none";
+
+        }
 
     }
 
@@ -53,21 +116,34 @@ function previewImage(input, number){
 
 }
 
-const submitBtn = document.getElementById("submitBtn");
 
-submitBtn.addEventListener("click", function(){
 
-    const accept = document.getElementById("accept");
+// ======================================
+// ส่งข้อมูล
+// ======================================
 
-    if(!accept.checked){
+window.onload = function(){
 
-        alert("กรุณายอมรับเงื่อนไขก่อน");
+    const submitBtn = document.getElementById("submitBtn");
 
-        return;
+    if(submitBtn){
+
+        submitBtn.addEventListener("click", function(){
+
+            const accept = document.getElementById("accept");
+
+            if(!accept.checked){
+
+                alert("กรุณายอมรับเงื่อนไขก่อน");
+
+                return;
+
+            }
+
+            alert("ส่งข้อมูลเรียบร้อย");
+
+        });
 
     }
 
-    alert("พร้อมส่งข้อมูล");
-
-});
-
+}
