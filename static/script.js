@@ -145,5 +145,27 @@ window.onload = function(){
         });
 
     }
+function changeStatus(input){
 
+
+    let parent =
+    input.closest(".status");
+
+
+    let buttons =
+    parent.querySelectorAll(".status-btn");
+
+
+    buttons.forEach(btn=>{
+
+        btn.classList.remove("active");
+
+    });
+
+
+
+    input.parentElement.classList.add("active");
+
+
+}
 }
