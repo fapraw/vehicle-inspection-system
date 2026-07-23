@@ -119,7 +119,13 @@
 
                 <div class="inspection-card">
 
-                    <h3>{{ loop.index }}. {{ item.title }}</h3>
+                    <h3>
+    {{ loop.index }}. {{ item.title }}
+</h3>
+
+<p class="inspection-detail">
+    {{ item.detail }}
+</p>
 
                     <div class="example-box">
 
@@ -225,7 +231,13 @@
 
                 <div class="inspection-card">
 
-                    <h3>{{ no }}. {{ item.title }}</h3>
+                    <h3>
+    {{ no }}. {{ item.title }}
+</h3>
+
+<p class="inspection-detail">
+    {{ item.detail }}
+</p>
 
                     <div class="example-box">
 
@@ -341,7 +353,13 @@
 
                 <div class="inspection-card">
 
-                    <h3>{{ no }}. {{ item.title }}</h3>
+                   <h3>
+    {{ no }}. {{ item.title }}
+</h3>
+
+<p class="inspection-detail">
+    {{ item.detail }}
+</p>
 
                     <div class="example-box">
 
@@ -381,37 +399,35 @@
 
                     <div class="status">
 
-                        <label>
 
-                            <input
-                                type="radio"
-                                name="status{{ no }}"
-                                value="ผ่าน">
+<label class="status-btn pass-btn">
 
-                            ผ่าน
+<input
+type="radio"
+name="status{{ loop.index }}"
+value="ผ่าน"
+onclick="changeStatus(this)">
 
-                        </label>
+ผ่าน
 
-                        <label>
+</label>
 
-                            <input
-                                type="radio"
-                                name="status{{ no }}"
-                                value="ไม่ผ่าน">
 
-                            ไม่ผ่าน
 
-                        </label>
+<label class="status-btn fail-btn">
 
-                    </div>
+<input
+type="radio"
+name="status{{ loop.index }}"
+value="ไม่ผ่าน"
+onclick="changeStatus(this)">
 
-                </div>
+ไม่ผ่าน
 
-                {% endfor %}
+</label>
 
-            </div>
 
-        </div>
+</div>
 
         <!-- สรุปผล -->
 
