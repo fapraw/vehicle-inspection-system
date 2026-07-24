@@ -1,0 +1,628 @@
+/* ==========================================
+   RESET
+========================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #eef5fb;
+    color: #333;
+}
+
+.container {
+    inline-size: 95%;
+    max-inline-size: 1400px;
+    margin: 25px auto 40px;
+}
+
+/* ==========================================
+   HEADER
+========================================== */
+
+.header {
+    background: #1E88E5;
+    color: #fff;
+    border-radius: 12px;
+    padding: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,.15);
+}
+
+.header-left h1 {
+    font-size: 36px;
+    margin-block-end: 8px;
+}
+
+.header-left p {
+    font-size: 18px;
+}
+
+.header-right {
+    text-align: end;
+}
+
+.datetime {
+    margin-block-end: 10px;
+}
+
+.datetime label {
+    display: block;
+    font-size: 14px;
+    color: #dbeeff;
+}
+
+.datetime span {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* ==========================================
+   CARD
+========================================== */
+
+.card {
+    background: #fff;
+    margin-block-start: 25px;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px rgba(0,0,0,.12);
+}
+
+.card h2 {
+    color: #1E88E5;
+    margin-block-end: 20px;
+}
+
+/* ==========================================
+   FORM
+========================================== */
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-block-end: 8px;
+    font-weight: bold;
+}
+
+.form-group input {
+    block-size: 45px;
+    padding: 10px 14px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: .3s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #1E88E5;
+    box-shadow: 0 0 8px rgba(30,136,229,.3);
+}
+
+/* ==========================================
+   STEP
+========================================== */
+
+.step {
+    display: none;
+}
+
+.step.active {
+    display: block;
+}
+
+/* ==========================================
+   INSPECTION AREA
+========================================== */
+
+.inspection-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+}
+
+.inspection-card {
+    background: #e3f6ff;
+    border-radius: 15px;
+    padding: 20px;
+    text-align: start;
+    box-shadow: 0 3px 10px rgba(0,0,0,.12);
+    border: 1px solid #bde7fa;
+    display: flex;
+    flex-direction: column;
+}
+
+.inspection-card h3 {
+    font-size: 20px;
+    margin-block-end: 12px;
+    color: #222;
+    text-align: center;
+}
+
+/* รายละเอียดรายการตรวจ (ปรับเพิ่มขนาดฟอนต์เป็น 16px) */
+.inspection-details {
+    background: #ffffff;
+    padding: 12px 15px;
+    border-radius: 8px;
+    margin-block-end: 12px;
+    border: 1px solid #d0e8f5;
+}
+
+.inspection-details ul {
+    padding-inline-start: 20px;
+    font-size: 16px; /* ⬆️ เพิ่มขนาดตัวอักษร */
+    font-weight: 500;
+    color: #222;
+    line-height: 1.6;
+}
+
+/* กรอบเตือนสีเหลือง Warning Box (ปรับเพิ่มขนาดฟอนต์) */
+.warning-box {
+    background: #fff8e1;
+    border-inline-start: 5px solid #ffb300;
+    padding: 12px;
+    border-radius: 6px;
+    margin-block-end: 15px;
+    color: #8c6b00;
+    font-size: 15px; /* ⬆️ เพิ่มขนาดตัวอักษร */
+    line-height: 1.5;
+}
+
+.warning-box strong {
+    display: block;
+    margin-block-end: 4px;
+    font-size: 16px; /* ⬆️ เพิ่มขนาดหัวข้อเตือน */
+    color: #b78103;
+}
+
+/* ==========================================
+   EXAMPLE IMAGE
+========================================== */
+
+.example-box {
+    margin-block-end: 15px;
+    text-align: center;
+}
+
+.example-image {
+    inline-size: 100%;
+    max-inline-size: 600px;
+    block-size: 250px;
+    object-fit: contain;
+    background: white;
+    border-radius: 10px;
+    border: 2px solid #ddd;
+}
+
+/* ==========================================
+   UPLOAD IMAGE (ปรับปรุงรองรับปุ่ม 2 แบบ)
+========================================== */
+
+.image-box {
+    inline-size: 100%;
+    max-inline-size: 400px;
+    background: #fff;
+    border: 2px dashed #bde7fa;
+    border-radius: 12px;
+    padding: 12px;
+    margin: 0 auto 15px;
+    text-align: center;
+    transition: border-color 0.3s ease;
+}
+
+.image-box.has-image {
+    border: 2px solid #2e7d32;
+    background: #f1f8e9;
+}
+
+/* พื้นที่แสดงรูป Preview */
+.preview-container {
+    inline-size: 30%;
+    block-size: 30px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-block-end: 10px;
+    background: #fafafa;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid #eee;
+}
+
+.preview-image {
+    inline-size: 50%;
+    block-size: 50%;
+    object-fit: cover;
+}
+
+/* กลุ่มปุ่มเลือกการอัปโหลด */
+.upload-btn-group {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.upload-btn {
+    flex: 1;
+    block-size: 40px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: #1E88E5;
+    font-size: 14px;
+    font-weight: bold;
+    background: #ffffff;
+    border: 1px solid #1E88E5;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.upload-btn:hover {
+    background: #1E88E5;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(30, 136, 229, 0.3);
+}
+
+.upload-btn-gallery {
+    color: #5c6bc0;
+    border-color: #5c6bc0;
+}
+
+.upload-btn-gallery:hover {
+    background: #5c6bc0;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(92, 107, 192, 0.3);
+}
+
+
+/* ==========================================
+   STATUS BUTTONS (ยอมรับ / ไม่เกี่ยวข้อง / ไม่ยอมรับ)
+========================================== */
+
+.status-buttons {
+    display: flex;
+    gap: 8px;
+    margin-block-start: auto;
+    justify-content: center;
+}
+
+.status-btn-check {
+    display: none;
+}
+
+.btn-status {
+    flex: 1;
+    text-align: center;
+    padding: 10px 4px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    border: 2px solid #ddd;
+    background: #ffffff;
+    color: #666;
+    transition: all 0.25s ease-in-out;
+    user-select: none;
+}
+
+/* Hover Effect เฉพาะตอนที่ไม่ได้ disabled */
+.btn-accept:not(.disabled-label):hover {
+    border-color: #2e7d32;
+    color: #2e7d32;
+    background: #f1f8e9;
+}
+
+.btn-na:not(.disabled-label):hover {
+    border-color: #f57f17;
+    color: #f57f17;
+    background: #fffde7;
+}
+
+.btn-reject:not(.disabled-label):hover {
+    border-color: #c62828;
+    color: #c62828;
+    background: #ffebee;
+}
+
+/* --- สถานะเมื่อถูกเลือก (Checked) --- */
+
+/* 1. ยอมรับ (สีเขียว) */
+.status-btn-check:checked + .btn-accept {
+    background: #2e7d32 !important;
+    border-color: #2e7d32 !important;
+    color: #ffffff !important;
+    box-shadow: 0 3px 8px rgba(46, 125, 50, 0.4);
+}
+
+/* 2. ไม่เกี่ยวข้อง (สีเหลือง/ส้ม) */
+.status-btn-check:checked + .btn-na {
+    background: #fbc02d !important;
+    border-color: #fbc02d !important;
+    color: #000000 !important;
+    box-shadow: 0 3px 8px rgba(251, 192, 45, 0.4);
+}
+
+/* 3. ไม่ยอมรับ (สีแดง) */
+.status-btn-check:checked + .btn-reject {
+    background: #c62828 !important;
+    border-color: #c62828 !important;
+    color: #ffffff !important;
+    box-shadow: 0 3px 8px rgba(198, 40, 40, 0.4);
+}
+
+
+/* ==========================================
+   DISABLED STATE (ล็อคปุ่มกดก่อนอัปโหลดรูป)
+========================================== */
+
+/* เมื่อ Radio ถูก disabled */
+.status-btn-check:disabled + .btn-status,
+.btn-status.disabled-label {
+    opacity: 0.4;
+    cursor: not-allowed !important;
+    pointer-events: none; /* ป้องกันการคลิก */
+    background: #e0e0e0;
+    border-color: #ccc;
+    color: #888;
+    box-shadow: none !important;
+}
+
+/* ==========================================
+   SUMMARY & CERTIFICATE AREA
+========================================== */
+
+.summary-box {
+    background: #fdfdfd;
+    font-size: 18px;
+    text-align: center;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+    line-height: 1.6;
+}
+
+.accept-box {
+    margin: 15px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
+}
+
+.submit-btn {
+    background: #2e7d32;
+    color: white;
+    inline-size: 100%;
+    margin-block-start: 10px;
+}
+
+.submit-btn:hover {
+    background: #1b5e20;
+}
+
+.certificate-card {
+    text-align: center;
+}
+
+.certificate-btn {
+    background: #ff9800;
+    color: white;
+}
+
+.certificate-btn:hover {
+    background: #f57c00;
+}
+
+/* ==========================================
+   PAGE BUTTON
+========================================== */
+
+.page-button {
+    margin-block-start: 30px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.page-button-between {
+    margin-block-start: 30px;
+    display: flex;
+    justify-content: space-between;
+}
+
+button {
+    cursor: pointer;
+    border: none;
+    font-size: 18px;
+    padding: 14px 35px;
+    border-radius: 10px;
+    transition: .3s;
+}
+
+.next-btn {
+    background: #1E88E5;
+    color: white;
+}
+
+.next-btn:hover {
+    background: #1565c0;
+}
+
+.back-btn {
+    background: #777;
+    color: white;
+}
+
+.back-btn:hover {
+    background: #555;
+}
+
+/* Responsive สำหรับมือถือ */
+@media (max-width: 768px) {
+    .inspection-grid, .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+.file-upload-box {
+    margin: 12px 0;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border: 1px dashed #cccccc;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.upload-btn-group {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-block-end: 8px;
+}
+
+.upload-btn {
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    display: inline-block;
+}
+
+.upload-btn-gallery {
+    background-color: #6c757d;
+}
+
+.file-info-text {
+    font-size: 13px;
+    color: #666666;
+    margin-block-start: 5px;
+}
+
+/* สไตล์ไฟล์แนบและปุ่มกดดูรูป */
+.file-attachment {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #e8f5e9;
+    border: 1px solid #c8e6c9;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-block-start: 8px;
+    font-size: 14px;
+    color: #2e7d32;
+    font-weight: 500;
+}
+
+.view-file-btn {
+    background-color: #2e7d32;
+    color: white;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s;
+}
+
+.view-file-btn:hover {
+    background-color: #1b5e20;
+}
+
+/* Modal พื้นหลังสีดำโปร่งแสง */
+.modal-overlay {
+    display: none; /* ซ่อนไว้ก่อน */
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+/* กล่องใส่รูปภาพ */
+.modal-content {
+    position: relative;
+    background-color: #fff;
+    padding: 10px;
+    border-radius: 8px;
+    max-inline-size: 90%;
+    max-block-size: 85vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content img {
+    max-inline-size: 100%;
+    max-block-size: 80vh;
+    border-radius: 4px;
+    object-fit: contain;
+}
+
+/* ปุ่มปิด [X] */
+.modal-close {
+    position: absolute;
+    inset-block-start: -12px;
+    inset-inline-end: -12px;
+    background: #ff4d4d;
+    color: white;
+    border-radius: 50%;
+    inline-size: 28px;
+    block-size: 28px;
+    text-align: center;
+    line-height: 26px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* ปุ่มไฟล์แนบ */
+.file-attachment {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #e8f5e9;
+    border: 1px solid #a5d6a7;
+    padding: 6px 12px;
+    border-radius: 6px;
+    margin-block-start: 8px;
+}
+
+.view-file-btn {
+    background-color: #2e7d32;
+    color: #fff;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.view-file-btn:hover {
+    background-color: #1b5e20;
+}
