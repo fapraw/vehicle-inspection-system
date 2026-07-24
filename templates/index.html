@@ -95,7 +95,7 @@
                     <div class="image-box">
                         <label for="photo1" class="upload-btn">
                             <img id="preview1" class="preview-image" style="display: none;">
-                            <span id="placeholder1">📷 เพิ่มรูป (เลือกไฟล์ / ถ่ายรูป)</span>
+                            <span id="placeholder1">📷 เพิ่มรูป </span>
                         </label>
                         <input type="file" id="photo1" accept="image/*" capture="environment" onchange="previewImage(this, 1)" hidden>
                     </div>
@@ -121,13 +121,29 @@
                         <img src="{{ url_for('static', filename='images/item' ~ no ~ '.png') }}" class="example-image">
                     </div>
 
-                    <div class="image-box">
-                        <label for="photo{{ no }}" class="upload-btn">
-                            <img id="preview{{ no }}" class="preview-image" style="display: none;">
-                            <span id="placeholder{{ no }}">📷 เพิ่มรูป</span>
-                        </label>
-                        <input type="file" id="photo{{ no }}" accept="image/*" capture="environment" onchange="previewImage(this, {{ no }})" hidden>
-                    </div>
+                   <div class="image-box">
+
+    <label class="upload-btn" onclick="chooseImage(1)">
+        <img id="preview1" class="preview-image" style="display:none;">
+        <span id="placeholder1">
+            📷 เพิ่มรูป
+        </span>
+    </label>
+
+    <input type="file"
+           id="camera1"
+           accept="image/*"
+           capture="environment"
+           onchange="previewImage(this,1)"
+           hidden>
+
+    <input type="file"
+           id="gallery1"
+           accept="image/*"
+           onchange="previewImage(this,1)"
+           hidden>
+
+</div>
 
                     <div class="status-buttons">
                         <input type="radio" id="accept{{ no }}" name="status{{ no }}" value="ยอมรับ" class="status-btn-check">
@@ -253,3 +269,4 @@
 
 </body>
 </html>
+
