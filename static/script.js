@@ -98,6 +98,21 @@ function previewImage(input, number) {
     reader.readAsDataURL(file);
 }
 
+function chooseImage(id){
+
+    let choice = confirm(
+        "เลือกวิธีเพิ่มรูป\n\nกด OK = ถ่ายรูปจากกล้อง\nกด Cancel = เลือกรูปภาพ"
+    );
+
+    if(choice){
+        // เปิดกล้อง
+        document.getElementById("camera"+id).click();
+    }
+    else{
+        // เปิด Gallery
+        document.getElementById("gallery"+id).click();
+    }
+}
 
 // ======================================
 // 4. การตรวจสอบข้อมูลและการส่งฟอร์ม (Form Submission)
