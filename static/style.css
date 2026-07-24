@@ -213,44 +213,38 @@ body {
 }
 
 /* ==========================================
-   UPLOAD IMAGE
+   UPLOAD IMAGE (ปรับปรุงรองรับปุ่ม 2 แบบ)
 ========================================== */
 
 .image-box {
-    width: 50%;
-    height: 50px;
-    background: #fff;
-    border: 3px dashed #777;
-    border-radius: 12px;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    margin: 0 auto 15px;
-
-    overflow: hidden;
-    position: relative;
-}
-
-
-/* ปุ่มอัปโหลดรูป (ลดขนาดตัวอักษรลงเป็น 14px) */
-.upload-btn {
     width: 100%;
-    height: 100%;
+    max-width: 400px;
+    background: #fff;
+    border: 2px dashed #bde7fa;
+    border-radius: 12px;
+    padding: 12px;
+    margin: 0 auto 15px;
+    text-align: center;
+    transition: border-color 0.3s ease;
+}
+
+.image-box.has-image {
+    border: 2px solid #2e7d32;
+    background: #f1f8e9;
+}
+
+/* พื้นที่แสดงรูป Preview */
+.preview-container {
+    width: 100%;
+    height: 160px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    background: #fafafa;
     display: flex;
     justify-content: center;
     align-items: center;
-    cursor: pointer;
-    color: #666;
-    font-size: 14px; /* ⬇️ ลดขนาดตัวอักษร */
-    font-weight: normal;
-    text-align: center;
-    padding: 10px;
-}
-
-.upload-btn:hover {
-    background: #f9f9f9;
+    border: 1px solid #eee;
 }
 
 .preview-image {
@@ -259,13 +253,55 @@ body {
     object-fit: cover;
 }
 
+/* กลุ่มปุ่มเลือกการอัปโหลด */
+.upload-btn-group {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.upload-btn {
+    flex: 1;
+    height: 40px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: #1E88E5;
+    font-size: 14px;
+    font-weight: bold;
+    background: #ffffff;
+    border: 1px solid #1E88E5;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.upload-btn:hover {
+    background: #1E88E5;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(30, 136, 229, 0.3);
+}
+
+.upload-btn-gallery {
+    color: #5c6bc0;
+    border-color: #5c6bc0;
+}
+
+.upload-btn-gallery:hover {
+    background: #5c6bc0;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(92, 107, 192, 0.3);
+}
+
+
 /* ==========================================
-   STATUS BUTTONS (ผ่าน/ไม่ผ่าน หรือ ยอมรับ/ไม่ยอมรับ)
+   STATUS BUTTONS (ยอมรับ / ไม่เกี่ยวข้อง / ไม่ยอมรับ)
 ========================================== */
 
 .status-buttons {
     display: flex;
-    gap: 15px;
+    gap: 8px;
     margin-top: auto;
     justify-content: center;
 }
@@ -277,11 +313,11 @@ body {
 .btn-status {
     flex: 1;
     text-align: center;
-    padding: 12px;
-    border-radius: 30px;
+    padding: 10px 4px;
+    border-radius: 25px;
     cursor: pointer;
     font-weight: bold;
-    font-size: 16px;
+    font-size: 14px;
     border: 2px solid #ddd;
     background: #ffffff;
     color: #666;
@@ -289,28 +325,66 @@ body {
     user-select: none;
 }
 
-.btn-accept:hover {
+/* Hover Effect เฉพาะตอนที่ไม่ได้ disabled */
+.btn-accept:not(.disabled-label):hover {
     border-color: #2e7d32;
     color: #2e7d32;
+    background: #f1f8e9;
 }
 
-.btn-reject:hover {
+.btn-na:not(.disabled-label):hover {
+    border-color: #f57f17;
+    color: #f57f17;
+    background: #fffde7;
+}
+
+.btn-reject:not(.disabled-label):hover {
     border-color: #c62828;
     color: #c62828;
+    background: #ffebee;
 }
 
+/* --- สถานะเมื่อถูกเลือก (Checked) --- */
+
+/* 1. ยอมรับ (สีเขียว) */
 .status-btn-check:checked + .btn-accept {
-    background: #2e7d32;
-    border-color: #2e7d32;
-    color: #ffffff;
+    background: #2e7d32 !important;
+    border-color: #2e7d32 !important;
+    color: #ffffff !important;
     box-shadow: 0 3px 8px rgba(46, 125, 50, 0.4);
 }
 
+/* 2. ไม่เกี่ยวข้อง (สีเหลือง/ส้ม) */
+.status-btn-check:checked + .btn-na {
+    background: #fbc02d !important;
+    border-color: #fbc02d !important;
+    color: #000000 !important;
+    box-shadow: 0 3px 8px rgba(251, 192, 45, 0.4);
+}
+
+/* 3. ไม่ยอมรับ (สีแดง) */
 .status-btn-check:checked + .btn-reject {
-    background: #c62828;
-    border-color: #c62828;
-    color: #ffffff;
+    background: #c62828 !important;
+    border-color: #c62828 !important;
+    color: #ffffff !important;
     box-shadow: 0 3px 8px rgba(198, 40, 40, 0.4);
+}
+
+
+/* ==========================================
+   DISABLED STATE (ล็อคปุ่มกดก่อนอัปโหลดรูป)
+========================================== */
+
+/* เมื่อ Radio ถูก disabled */
+.status-btn-check:disabled + .btn-status,
+.btn-status.disabled-label {
+    opacity: 0.4;
+    cursor: not-allowed !important;
+    pointer-events: none; /* ป้องกันการคลิก */
+    background: #e0e0e0;
+    border-color: #ccc;
+    color: #888;
+    box-shadow: none !important;
 }
 
 /* ==========================================
