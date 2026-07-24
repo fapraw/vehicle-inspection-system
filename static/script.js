@@ -71,19 +71,20 @@ function prevStep() {
 
 
 // ======================================
-// 3. Preview รูปภาพที่อัปโหลด/ถ่ายรูป
+// 3. จัดการรูปภาพและการปลดล็อคปุ่มสถานะ
 // ======================================
 
-function previewImage(input, number) {
+function handleImageUpload(input, number) {
     const file = input.files[0];
-
     if (!file) return;
 
     const reader = new FileReader();
 
     reader.onload = function(e) {
+        // 3.1 แสดงพรีวิวรูปภาพ
         const preview = document.getElementById("preview" + number);
         const placeholder = document.getElementById("placeholder" + number);
+        const imageBox = preview?.closest('.image-box');
 
         if (preview) {
             preview.src = e.target.result;
@@ -93,26 +94,52 @@ function previewImage(input, number) {
         if (placeholder) {
             placeholder.style.display = "none";
         }
+
+        if (imageBox) {
+            imageBox.classList.add('has-image');
+        }
+
+        // 3.2 ปลดล็อคปุ่มสถานะ (ยอมรับ, ไม่เกี่ยวข้อง, ไม่ยอมรับ) ของข้อนี้
+        unlockStatusButtons(number);
     };
 
     reader.readAsDataURL(file);
 }
 
-function chooseImage(id){
+// ฟังก์ชันรองรับการเรียก preview แบบดั้งเดิม (ย้อนหลัง)
+function previewImage(input, number) {
+    handleImageUpload(input, number);
+}
 
-    let choice = confirm(
-        "เลือกวิธีเพิ่มรูป\n\nกด OK = ถ่ายรูปจากกล้อง\nกด Cancel = เลือกรูปภาพ"
+// ปลดล็อคปุ่มเลือกสถานะเมื่อมีรูปภาพแล้ว
+function unlockStatusButtons(number) {
+    const radios = document.querySelectorAll(`input[name="status${number}"]`);
+    radios.forEach(radio => {
+        radio.disabled = false;
+        
+        // เอาคลาส disabled-label ออกจาก label
+        const label = document.querySelector(`label[for="${radio.id}"]`);
+        if (label) {
+            label.classList.remove('disabled-label');
+        }
+    });
+}
+
+// ฟังก์ชันทางเลือกป๊อปอัพ เลือกวิธีอัปโหลด
+function chooseImage(id) {
+    const choice = confirm(
+        "เลือกวิธีเพิ่มรูปภาพ\n\nกด [ OK ] = ถ่ายรูปจากกล้อง\nกด [ Cancel ] = เลือกรูปภาพจากคลังภาพ"
     );
 
-    if(choice){
-        // เปิดกล้อง
-        document.getElementById("camera"+id).click();
-    }
-    else{
-        // เปิด Gallery
-        document.getElementById("gallery"+id).click();
+    if (choice) {
+        const cameraInput = document.getElementById("camera" + id);
+        if (cameraInput) cameraInput.click();
+    } else {
+        const galleryInput = document.getElementById("gallery" + id);
+        if (galleryInput) galleryInput.click();
     }
 }
+
 
 // ======================================
 // 4. การตรวจสอบข้อมูลและการส่งฟอร์ม (Form Submission)
@@ -143,33 +170,53 @@ window.onload = function() {
                 return;
             }
 
-            // 4.3 ตรวจสอบว่าเลือกผลการตรวจ (ยอมรับ/ไม่ยอมรับ) ครบทุกข้อหรือยัง
+            // 4.3 ตรวจสอบรูปภาพและการเลือกผลการตรวจ (ยอมรับ / ไม่เกี่ยวข้อง / ไม่ยอมรับ)
             const totalItems = 12; // จำนวนรายการตรวจทั้งหมด
-            let missingItems = [];
+            let missingImages = [];
+            let missingStatus = [];
 
             for (let i = 1; i <= totalItems; i++) {
+                // เช็คว่ามีรูปถ่าย/เลือกรูปหรือยัง
+                const cameraInput = document.getElementById(`camera${i}`) || document.getElementById(`photo${i}`);
+                const galleryInput = document.getElementById(`gallery${i}`);
+                
+                const hasCameraImg = cameraInput && cameraInput.files && cameraInput.files.length > 0;
+                const hasGalleryImg = galleryInput && galleryInput.files && galleryInput.files.length > 0;
+
+                if (!hasCameraImg && !hasGalleryImg) {
+                    missingImages.push(i);
+                }
+
+                // เช็คว่าเลือกสถานะหรือยัง
                 const statusChecked = document.querySelector(`input[name="status${i}"]:checked`);
                 if (!statusChecked) {
-                    missingItems.push(i);
+                    missingStatus.push(i);
                 }
             }
 
-            if (missingItems.length > 0) {
-                alert(`⚠️ กรุณาเลือกระบุผลการตรวจให้ครบถ้วน (ยังไม่ได้ตรวจข้อ: ${missingItems.join(", ")})`);
-                
-                // พาไปยัง Step ที่ข้อแรกยังไม่ได้ลงผลตรวจ
-                const firstMissing = missingItems[0];
-                if (firstMissing <= 4) showStep(1);
-                else if (firstMissing <= 8) showStep(2);
-                else showStep(3);
-                
+            // ถ้ามีข้อที่ยังไม่ได้อัปโหลดรูปภาพ
+            if (missingImages.length > 0) {
+                alert(`⚠️ กรุณาเพิ่มรูปภาพให้ครบถ้วนก่อนเลือกสถานะ (ยังไม่ได้เพิ่มรูปข้อ: ${missingImages.join(", ")})`);
+                navigateToItemStep(missingImages[0]);
+                return;
+            }
+
+            // ถ้ามีข้อที่ยังไม่ได้ระบุสถานะ
+            if (missingStatus.length > 0) {
+                alert(`⚠️ กรุณาเลือกระบุผลการตรวจให้ครบถ้วน (ยังไม่ได้ตรวจข้อ: ${missingStatus.join(", ")})`);
+                navigateToItemStep(missingStatus[0]);
                 return;
             }
 
             // หากผ่านเงื่อนไขทั้งหมด
             alert("✅ ตรวจสอบและส่งข้อมูลเรียบร้อยแล้ว!");
-            
-            // หมายเหตุ: ตรงนี้สามารถเพิ่มโค้ดสำหรับ Submit Form ไปยัง Backend (Flask API) ได้ในอนาคต
         });
     }
 };
+
+// ฟังก์ชันช่วยเปลี่ยนหน้าไปยัง Step ของข้อที่ขาดข้อมูล
+function navigateToItemStep(itemNumber) {
+    if (itemNumber <= 4) showStep(1);
+    else if (itemNumber <= 8) showStep(2);
+    else showStep(3);
+}
