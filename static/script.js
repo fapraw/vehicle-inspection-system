@@ -1,9 +1,8 @@
 // ======================================
-// แสดงวันที่และเวลา
+// 1. แสดงวันที่และเวลา (Real-time)
 // ======================================
 
 function updateDateTime() {
-
     const now = new Date();
 
     const date = now.toLocaleDateString("th-TH", {
@@ -23,149 +22,139 @@ function updateDateTime() {
 
     if (dateEl) dateEl.textContent = date;
     if (timeEl) timeEl.textContent = time;
-
 }
 
+// เรียกใช้งานครั้งแรกทันที และอัปเดตทุกๆ 1 วินาที
 updateDateTime();
 setInterval(updateDateTime, 1000);
 
 
 // ======================================
-// Multi Step Form
+// 2. Multi Step Form (ระบบเปลี่ยนหน้า)
 // ======================================
 
 let currentStep = 1;
 const totalStep = 3;
 
-function showStep(step){
-
-    document.querySelectorAll(".step").forEach(function(page){
-
+function showStep(step) {
+    // ซ่อนทุก Step
+    document.querySelectorAll(".step").forEach(function(page) {
         page.classList.remove("active");
-
     });
 
-    document
-        .getElementById("step"+step)
-        .classList
-        .add("active");
+    // แสดง Step ที่เลือก
+    const activeStep = document.getElementById("step" + step);
+    if (activeStep) {
+        activeStep.classList.add("active");
+    }
 
     currentStep = step;
 
+    // เลื่อนหน้าจอขึ้นไปด้านบนสุดแบบนุ่มนวล
     window.scrollTo({
-
-        top:0,
-        behavior:"smooth"
-
+        top: 0,
+        behavior: "smooth"
     });
-
 }
 
-function nextStep(){
-
-    if(currentStep < totalStep){
-
+function nextStep() {
+    if (currentStep < totalStep) {
         showStep(currentStep + 1);
-
     }
-
 }
 
-function prevStep(){
-
-    if(currentStep > 1){
-
+function prevStep() {
+    if (currentStep > 1) {
         showStep(currentStep - 1);
-
     }
-
 }
 
 
 // ======================================
-// Preview รูปภาพ
+// 3. Preview รูปภาพที่อัปโหลด/ถ่ายรูป
 // ======================================
 
-function previewImage(input, number){
-
+function previewImage(input, number) {
     const file = input.files[0];
 
-    if(!file) return;
+    if (!file) return;
 
     const reader = new FileReader();
 
-    reader.onload = function(e){
+    reader.onload = function(e) {
+        const preview = document.getElementById("preview" + number);
+        const placeholder = document.getElementById("placeholder" + number);
 
-        const preview = document.getElementById("preview"+number);
-
-        preview.src = e.target.result;
-
-        preview.style.display = "block";
-
-        const text = document.getElementById("placeholder"+number);
-
-        if(text){
-
-            text.style.display="none";
-
+        if (preview) {
+            preview.src = e.target.result;
+            preview.style.display = "block";
         }
 
-    }
+        if (placeholder) {
+            placeholder.style.display = "none";
+        }
+    };
 
     reader.readAsDataURL(file);
-
 }
 
 
-
 // ======================================
-// ส่งข้อมูล
+// 4. การตรวจสอบข้อมูลและการส่งฟอร์ม (Form Submission)
 // ======================================
 
-window.onload = function(){
-
+window.onload = function() {
     const submitBtn = document.getElementById("submitBtn");
 
-    if(submitBtn){
-
-        submitBtn.addEventListener("click", function(){
-
+    if (submitBtn) {
+        submitBtn.addEventListener("click", function() {
+            
+            // 4.1 ตรวจสอบการยอมรับเงื่อนไข
             const accept = document.getElementById("accept");
-
-            if(!accept.checked){
-
-                alert("กรุณายอมรับเงื่อนไขก่อน");
-
+            if (!accept || !accept.checked) {
+                alert("⚠️ กรุณายืนยันการยอมรับเงื่อนไขก่อนส่งข้อมูล");
                 return;
-
             }
 
-            alert("ส่งข้อมูลเรียบร้อย");
+            // 4.2 ตรวจสอบข้อมูลทั่วไป (Company, Plate, Station, Inspector)
+            const company = document.getElementById("company")?.value.trim();
+            const plate = document.getElementById("plate")?.value.trim();
+            const station = document.getElementById("station")?.value.trim();
+            const inspector = document.getElementById("inspector")?.value.trim();
 
+            if (!company || !plate || !station || !inspector) {
+                alert("⚠️ กรุณากรอกข้อมูลทั่วไป (บริษัท, ทะเบียนรถ, สถานี, ผู้ตรวจ) ให้ครบถ้วน");
+                showStep(1); // เด้งกลับไปหน้าแรกเพื่อให้ผู้ใช้กรอก
+                return;
+            }
+
+            // 4.3 ตรวจสอบว่าเลือกผลการตรวจ (ยอมรับ/ไม่ยอมรับ) ครบทุกข้อหรือยัง
+            const totalItems = 12; // จำนวนรายการตรวจทั้งหมด
+            let missingItems = [];
+
+            for (let i = 1; i <= totalItems; i++) {
+                const statusChecked = document.querySelector(`input[name="status${i}"]:checked`);
+                if (!statusChecked) {
+                    missingItems.push(i);
+                }
+            }
+
+            if (missingItems.length > 0) {
+                alert(`⚠️ กรุณาเลือกระบุผลการตรวจให้ครบถ้วน (ยังไม่ได้ตรวจข้อ: ${missingItems.join(", ")})`);
+                
+                // พาไปยัง Step ที่ข้อแรกยังไม่ได้ลงผลตรวจ
+                const firstMissing = missingItems[0];
+                if (firstMissing <= 4) showStep(1);
+                else if (firstMissing <= 8) showStep(2);
+                else showStep(3);
+                
+                return;
+            }
+
+            // หากผ่านเงื่อนไขทั้งหมด
+            alert("✅ ตรวจสอบและส่งข้อมูลเรียบร้อยแล้ว!");
+            
+            // หมายเหตุ: ตรงนี้สามารถเพิ่มโค้ดสำหรับ Submit Form ไปยัง Backend (Flask API) ได้ในอนาคต
         });
-
     }
-function changeStatus(input){
-
-
-    let parent =
-    input.closest(".status");
-
-
-    let buttons =
-    parent.querySelectorAll(".status-btn");
-
-
-    buttons.forEach(btn=>{
-
-        btn.classList.remove("active");
-
-    });
-
-
-
-    input.parentElement.classList.add("active");
-
-
-}
-}
+};
