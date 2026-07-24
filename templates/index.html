@@ -61,75 +61,47 @@
             <h2>📋 รายการตรวจ (1-4)</h2>
             <div class="inspection-grid">
 
-                <!-- รายการตรวจที่ 1 -->
-                <div class="inspection-card" id="card1">
-                    <h3>1. สภาพแผงข้างรถบรรทุกอ้อยต้องแข็งแรง เป็นแนวตรง</h3>
-                    <div class="inspection-details">
-                        <ul>
-                            <li>รถที่แผงข้างเป็นไม้ต้องไม่ผุหรือแตกร้าว</li>
-                            <li>น็อตยึดแผงข้างต้องแน่นหนาและแข็งแรง</li>
-                        </ul>
-                    </div>
-                    <div class="warning-box">
-                        <strong>⚠️ ข้อควรระวัง</strong>
-                        <p>หากแผงข้างผุ อ้อยอาจเสียบทะลุและทำให้เสียหาย</p>
-                        <p>แผงข้างอาจหลุดตกลงสะพานลำเลียงอ้อย ทำให้ต้องหยุดเครื่องจักร</p>
-                    </div>
-                    <div class="example-box">
-                        <img src="{{ url_for('static', filename='images/item1.png') }}" class="example-image">
-                    </div>
-
-                    <!-- อัปโหลดรูป -->
-                    <div class="image-box">
-                        <div class="preview-container">
-                            <img id="preview1" class="preview-image" style="display: none;">
-                            <span id="placeholder1" style="color:#777;">📷 ยังไม่ได้เลือกรูปภาพ</span>
-                        </div>
-                        <div class="upload-btn-group">
-                            <label for="camera1" class="upload-btn">📷 ถ่ายรูป</label>
-                            <input type="file" id="camera1" accept="image/*" capture="environment" onchange="handleImageUpload(this, 1)" hidden>
-
-                            <label for="gallery1" class="upload-btn upload-btn-gallery">🖼️ คลังภาพ</label>
-                            <input type="file" id="gallery1" accept="image/*" onchange="handleImageUpload(this, 1)" hidden>
-                        </div>
-                    </div>
-
-                    <!-- ปุ่มสถานะ (ล็อคไว้ก่อนอัปโหลดรูป) -->
-                    <div class="status-buttons">
-                        <input type="radio" id="accept1" name="status1" value="ยอมรับ" class="status-btn-check" disabled>
-                        <label for="accept1" class="btn-status btn-accept disabled-label">ยอมรับ</label>
-
-                        <input type="radio" id="na1" name="status1" value="ไม่เกี่ยวข้อง" class="status-btn-check" disabled>
-                        <label for="na1" class="btn-status btn-na disabled-label">ไม่เกี่ยวข้อง</label>
-
-                        <input type="radio" id="reject1" name="status1" value="ไม่ยอมรับ" class="status-btn-check" disabled>
-                        <label for="reject1" class="btn-status btn-reject disabled-label">ไม่ยอมรับ</label>
-                    </div>
-                </div>
-
-                <!-- รายการตรวจที่ 2-4 -->
-                {% for item in items[1:4] %}
-                {% set no = loop.index + 1 %}
+                {% for item in items[0:4] %}
+                {% set no = item.id %}
                 <div class="inspection-card" id="card{{ no }}">
                     <h3>{{ no }}. {{ item.title }}</h3>
+                    
+                    {% if item.details %}
+                    <div class="inspection-details">
+                        <ul>
+                            {% for detail in item.details %}
+                            <li>{{ detail }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    {% if item.warnings %}
+                    <div class="warning-box">
+                        <strong>⚠️ ข้อควรระวัง</strong>
+                        {% for warning in item.warnings %}
+                        <p>{{ warning }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
                     <div class="example-box">
                         <img src="{{ url_for('static', filename='images/item' ~ no ~ '.png') }}" class="example-image">
                     </div>
 
+                    <!-- อัปโหลดรูป -->
                     <div class="image-box">
-                        <div class="preview-container">
-                            <img id="preview{{ no }}" class="preview-image" style="display: none;">
-                            <span id="placeholder{{ no }}" style="color:#777;">📷 ยังไม่ได้เลือกรูปภาพ</span>
-                        </div>
                         <div class="upload-btn-group">
                             <label for="camera{{ no }}" class="upload-btn">📷 ถ่ายรูป</label>
                             <input type="file" id="camera{{ no }}" accept="image/*" capture="environment" onchange="handleImageUpload(this, {{ no }})" hidden>
 
-                            <label for="gallery{{ no }}" class="upload-btn upload-btn-gallery">🖼️ คลังภาพ</label>
+                            <label for="gallery{{ no }}" class="upload-btn upload-btn-gallery">🖼️ เลือกไฟล์</label>
                             <input type="file" id="gallery{{ no }}" accept="image/*" onchange="handleImageUpload(this, {{ no }})" hidden>
                         </div>
+                        <div id="fileInfo{{ no }}" class="file-info-text">ยังไม่ได้เลือกไฟล์ภาพ</div>
                     </div>
 
+                    <!-- ปุ่มสถานะ -->
                     <div class="status-buttons">
                         <input type="radio" id="accept{{ no }}" name="status{{ no }}" value="ยอมรับ" class="status-btn-check" disabled>
                         <label for="accept{{ no }}" class="btn-status btn-accept disabled-label">ยอมรับ</label>
@@ -141,7 +113,7 @@
                         <label for="reject{{ no }}" class="btn-status btn-reject disabled-label">ไม่ยอมรับ</label>
                     </div>
                 </div>
-                {% endfor %} <!-- 👈 มี endfor ปิดถูกต้อง -->
+                {% endfor %}
 
             </div>
 
@@ -157,25 +129,42 @@
             <h2>📋 รายการตรวจ (5-8)</h2>
             <div class="inspection-grid">
                 {% for item in items[4:8] %}
-                {% set no = loop.index + 4 %}
+                {% set no = item.id %}
                 <div class="inspection-card" id="card{{ no }}">
                     <h3>{{ no }}. {{ item.title }}</h3>
+
+                    {% if item.details %}
+                    <div class="inspection-details">
+                        <ul>
+                            {% for detail in item.details %}
+                            <li>{{ detail }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    {% if item.warnings %}
+                    <div class="warning-box">
+                        <strong>⚠️ ข้อควรระวัง</strong>
+                        {% for warning in item.warnings %}
+                        <p>{{ warning }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
                     <div class="example-box">
                         <img src="{{ url_for('static', filename='images/item' ~ no ~ '.png') }}" class="example-image">
                     </div>
 
                     <div class="image-box">
-                        <div class="preview-container">
-                            <img id="preview{{ no }}" class="preview-image" style="display: none;">
-                            <span id="placeholder{{ no }}" style="color:#777;">📷 ยังไม่ได้เลือกรูปภาพ</span>
-                        </div>
                         <div class="upload-btn-group">
                             <label for="camera{{ no }}" class="upload-btn">📷 ถ่ายรูป</label>
                             <input type="file" id="camera{{ no }}" accept="image/*" capture="environment" onchange="handleImageUpload(this, {{ no }})" hidden>
 
-                            <label for="gallery{{ no }}" class="upload-btn upload-btn-gallery">🖼️ คลังภาพ</label>
+                            <label for="gallery{{ no }}" class="upload-btn upload-btn-gallery">🖼️ เลือกไฟล์</label>
                             <input type="file" id="gallery{{ no }}" accept="image/*" onchange="handleImageUpload(this, {{ no }})" hidden>
                         </div>
+                        <div id="fileInfo{{ no }}" class="file-info-text">ยังไม่ได้เลือกไฟล์ภาพ</div>
                     </div>
 
                     <div class="status-buttons">
@@ -189,7 +178,7 @@
                         <label for="reject{{ no }}" class="btn-status btn-reject disabled-label">ไม่ยอมรับ</label>
                     </div>
                 </div>
-                {% endfor %} <!-- 👈 ปิดลูปถูกต้อง -->
+                {% endfor %}
             </div>
 
             <div class="page-button-between">
@@ -205,25 +194,42 @@
             <h2>📋 รายการตรวจ (9-12)</h2>
             <div class="inspection-grid">
                 {% for item in items[8:12] %}
-                {% set no = loop.index + 8 %}
+                {% set no = item.id %}
                 <div class="inspection-card" id="card{{ no }}">
                     <h3>{{ no }}. {{ item.title }}</h3>
+
+                    {% if item.details %}
+                    <div class="inspection-details">
+                        <ul>
+                            {% for detail in item.details %}
+                            <li>{{ detail }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    {% if item.warnings %}
+                    <div class="warning-box">
+                        <strong>⚠️ ข้อควรระวัง</strong>
+                        {% for warning in item.warnings %}
+                        <p>{{ warning }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
                     <div class="example-box">
                         <img src="{{ url_for('static', filename='images/item' ~ no ~ '.png') }}" class="example-image">
                     </div>
 
                     <div class="image-box">
-                        <div class="preview-container">
-                            <img id="preview{{ no }}" class="preview-image" style="display: none;">
-                            <span id="placeholder{{ no }}" style="color:#777;">📷 ยังไม่ได้เลือกรูปภาพ</span>
-                        </div>
                         <div class="upload-btn-group">
                             <label for="camera{{ no }}" class="upload-btn">📷 ถ่ายรูป</label>
                             <input type="file" id="camera{{ no }}" accept="image/*" capture="environment" onchange="handleImageUpload(this, {{ no }})" hidden>
 
-                            <label for="gallery{{ no }}" class="upload-btn upload-btn-gallery">🖼️ คลังภาพ</label>
+                            <label for="gallery{{ no }}" class="upload-btn upload-btn-gallery">🖼️ เลือกไฟล์</label>
                             <input type="file" id="gallery{{ no }}" accept="image/*" onchange="handleImageUpload(this, {{ no }})" hidden>
                         </div>
+                        <div id="fileInfo{{ no }}" class="file-info-text">ยังไม่ได้เลือกไฟล์ภาพ</div>
                     </div>
 
                     <div class="status-buttons">
@@ -237,7 +243,7 @@
                         <label for="reject{{ no }}" class="btn-status btn-reject disabled-label">ไม่ยอมรับ</label>
                     </div>
                 </div>
-                {% endfor %} <!-- 👈 ปิดลูปถูกต้อง -->
+                {% endfor %}
             </div>
         </div>
 
@@ -246,7 +252,7 @@
             <h2>📄 สรุปผล</h2>
             <div class="summary-box">
                 <p>ข้าพเจ้าได้ทำการตรวจเช็คสภาพรถเรียบร้อยแล้ว</p>
-                <p>หากเกิดความเสียหายจากการไม่ตรวจสอบ บริษัทจะไม่รับผิดชอบทุกกรณี</p>
+                <p>หากเกิดความเสียหายจากการตรวจสอบ บริษัทจะไม่รับผิดชอบทุกกรณี</p>
                 <div class="accept-box">
                     <input type="checkbox" id="accept">
                     <label for="accept">ยอมรับเงื่อนไข</label>
@@ -268,5 +274,14 @@
 </div>
 
 <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+<!-- Modal สำหรับเปิดดูรูปภาพเต็มหน้าจอ -->
+<div id="imageModal" class="modal-overlay" onclick="closeImageModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <span class="modal-close" onclick="closeImageModal()">&times;</span>
+        <img id="modalImage" src="" alt="ภาพแนบ">
+    </div>
+</div>
+
 </body>
 </html>
