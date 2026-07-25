@@ -240,13 +240,13 @@ async function generateAndDownloadPDF(formData) {
     const dateStr = document.getElementById("currentDate")?.innerText || "-";
     const timeStr = document.getElementById("currentTime")?.innerText || "-";
 
-    // 1. ใส่ข้อมูลลงใน Certificate Template
-    document.getElementById("pdf-inspector").innerText = formData.inspector;
-    document.getElementById("pdf-plate").innerText = formData.plate;
-    document.getElementById("pdf-station").innerText = formData.station;
-    document.getElementById("pdf-date").innerText = dateStr;
-    document.getElementById("pdf-time").innerText = timeStr;
-    document.getElementById("pdf-footer-plate").innerText = formData.plate;
+    // 1. ใส่ข้อมูลลงใน Certificate Template (ใช้ ?. ป้องกัน Error กรณีหา Element ไม่เจอ)
+    if (document.getElementById("pdf-inspector")) document.getElementById("pdf-inspector").innerText = formData.inspector;
+    if (document.getElementById("pdf-plate")) document.getElementById("pdf-plate").innerText = formData.plate;
+    if (document.getElementById("pdf-station")) document.getElementById("pdf-station").innerText = formData.station;
+    if (document.getElementById("pdf-date")) document.getElementById("pdf-date").innerText = dateStr;
+    if (document.getElementById("pdf-time")) document.getElementById("pdf-time").innerText = timeStr;
+    if (document.getElementById("pdf-scope-plate")) document.getElementById("pdf-scope-plate").innerText = formData.plate;
 
     // 2. ใส่รูปภาพลงใน Scope Of Inspection และสร้าง Promise รอโหลดรูป
     const galleryContainer = document.getElementById("pdf-gallery");
@@ -276,7 +276,7 @@ async function generateAndDownloadPDF(formData) {
     // รอให้รูปภาพทั้งหมดใน DOM โหลดเสร็จก่อน
     await Promise.all(imageLoadPromises);
 
-    // 3. ปรับ Element ให้มองเห็นชั่วคราว (แก้ปัญหาหน้าขาว)
+    // 3. ปรับ Element ให้มองเห็นชั่วคราวเพื่อเรนเดอร์
     const pdfWrapper = document.getElementById("pdf-wrapper");
     const element = document.getElementById("pdf-template");
 
@@ -284,19 +284,21 @@ async function generateAndDownloadPDF(formData) {
         pdfWrapper.style.position = "fixed";
         pdfWrapper.style.top = "0";
         pdfWrapper.style.left = "0";
-        pdfWrapper.style.zIndex = "-9999"; // วางไว้ด้านหลังสุดเพื่อไม่ให้ทับหน้าจอ
+        pdfWrapper.style.zIndex = "-9999";
         pdfWrapper.style.opacity = "1";
     }
 
-    // 4. ตั้งค่า html2pdf
+    // 4. ตั้งค่า html2pdf สำหรับเต็มหน้า A4 (Margin = 0)
     const opt = {
-        margin:       [10, 10, 10, 10], // ใส่ Margin เล็กน้อย
+        margin:       0,
         filename:     `Certificate_${formData.plate}_${dateStr.replace(/\//g, '-')}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { 
             scale: 2, 
             useCORS: true, 
             logging: false,
+            width: 793,  // ขนาด Canvas ตรงตามสัดส่วน A4
+            height: 1122,
             scrollX: 0,
             scrollY: 0
         },
