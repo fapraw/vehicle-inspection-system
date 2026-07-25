@@ -143,14 +143,14 @@ function closeImageModal() {
 }
 
 // ======================================
-// 4. การตรวจสอบข้อมูลและการส่งฟอร์ม (Form Submission)
+// 4. การตรวจสอบข้อมูลและการส่งฟอร์ม + สร้าง PDF Certificate
 // ======================================
 
 window.onload = function() {
     const submitBtn = document.getElementById("submitBtn");
 
     if (submitBtn) {
-        submitBtn.addEventListener("click", function() {
+        submitBtn.addEventListener("click", async function() {
             
             // 4.1 ตรวจสอบการยอมรับเงื่อนไข
             const accept = document.getElementById("accept");
@@ -209,8 +209,15 @@ window.onload = function() {
                 return;
             }
 
-            // หากผ่านเงื่อนไขทั้งหมด
-            alert("✅ ตรวจสอบและส่งข้อมูลเรียบร้อยแล้ว!");
+            // ======================================
+            // 4.4 สร้าง Certificate และดาวน์โหลด PDF
+            // ======================================
+            await generateAndDownloadPDF({
+                inspector,
+                plate,
+                station,
+                company
+            });
         });
     }
 };
@@ -220,4 +227,106 @@ function navigateToItemStep(itemNumber) {
     if (itemNumber <= 4) showStep(1);
     else if (itemNumber <= 8) showStep(2);
     else showStep(3);
+}
+
+// ======================================
+// 5. ฟังก์ชันย่อยสำหรับประมวลผล HTML2PDF
+// ======================================
+
+async function generateAndDownloadPDF(formData) {
+    const submitBtn = document.getElementById("submitBtn");
+
+    // ดึงวันเวลาจาก Element หน้าจอ
+    const dateStr = document.getElementById("currentDate")?.innerText || "-";
+    const timeStr = document.getElementById("currentTime")?.innerText || "-";
+
+    // 1. ใส่ข้อมูลลงใน Certificate Template
+    document.getElementById("pdf-inspector").innerText = formData.inspector;
+    document.getElementById("pdf-plate").innerText = formData.plate;
+    document.getElementById("pdf-station").innerText = formData.station;
+    document.getElementById("pdf-date").innerText = dateStr;
+    document.getElementById("pdf-time").innerText = timeStr;
+    document.getElementById("pdf-footer-plate").innerText = formData.plate;
+
+    // 2. ใส่รูปภาพลงใน Scope Of Inspection และสร้าง Promise รอโหลดรูป
+    const galleryContainer = document.getElementById("pdf-gallery");
+    const imageLoadPromises = [];
+
+    if (galleryContainer) {
+        galleryContainer.innerHTML = ""; // ล้างรูปเก่า
+
+        for (let i = 1; i <= 12; i++) {
+            if (uploadedFileUrls[i]) {
+                const imgElement = document.createElement("img");
+                imgElement.className = "cert-img-thumb";
+                
+                // สร้าง Promise รอให้รูปภาพ Render สมบูรณ์
+                const imgPromise = new Promise((resolve) => {
+                    imgElement.onload = () => resolve();
+                    imgElement.onerror = () => resolve(); // ข้ามถ้ามีรูปโหลดผิดพลาด
+                });
+                imageLoadPromises.push(imgPromise);
+
+                imgElement.src = uploadedFileUrls[i];
+                galleryContainer.appendChild(imgElement);
+            }
+        }
+    }
+
+    // รอให้รูปภาพทั้งหมดใน DOM โหลดเสร็จก่อน
+    await Promise.all(imageLoadPromises);
+
+    // 3. ปรับ Element ให้มองเห็นชั่วคราว (แก้ปัญหาหน้าขาว)
+    const pdfWrapper = document.getElementById("pdf-wrapper");
+    const element = document.getElementById("pdf-template");
+
+    if (pdfWrapper) {
+        pdfWrapper.style.position = "fixed";
+        pdfWrapper.style.top = "0";
+        pdfWrapper.style.left = "0";
+        pdfWrapper.style.zIndex = "-9999"; // วางไว้ด้านหลังสุดเพื่อไม่ให้ทับหน้าจอ
+        pdfWrapper.style.opacity = "1";
+    }
+
+    // 4. ตั้งค่า html2pdf
+    const opt = {
+        margin:       [10, 10, 10, 10], // ใส่ Margin เล็กน้อย
+        filename:     `Certificate_${formData.plate}_${dateStr.replace(/\//g, '-')}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { 
+            scale: 2, 
+            useCORS: true, 
+            logging: false,
+            scrollX: 0,
+            scrollY: 0
+        },
+        jsPDF:        { unit: 'pt', format: 'a4', orientation: 'portrait' }
+    };
+
+    try {
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = "⏳ กำลังสร้างใบ Certificate...";
+        }
+
+        // แปลงเป็น PDF และดาวน์โหลด
+        await html2pdf().set(opt).from(element).save();
+
+        alert("✅ ตรวจสอบ ส่งข้อมูล และดาวน์โหลดใบ Certificate เรียบร้อยแล้ว!");
+    } catch (error) {
+        console.error("PDF Generation Error:", error);
+        alert("❌ เกิดข้อผิดพลาดในการดาวน์โหลด PDF กรุณาลองใหม่อีกครั้ง");
+    } finally {
+        // 5. ซ่อน Element กลับไปเหมือนเดิมหลัง Gen เสร็จ
+        if (pdfWrapper) {
+            pdfWrapper.style.position = "absolute";
+            pdfWrapper.style.left = "-9999px";
+            pdfWrapper.style.top = "-9999px";
+        }
+
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerText = "✅ ยืนยันการส่ง";
+        }
+    }
 }
