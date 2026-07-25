@@ -14,7 +14,7 @@
 
 <div class="container">
 
-    <!-- ========================== STEP 1 =========================== -->
+    <!-- ========================== STEP 1: ข้อมูลทั่วไป =========================== -->
     <div class="step active" id="step1">
         <!-- Header -->
         <div class="header">
@@ -39,209 +39,49 @@
             <h2>ข้อมูลทั่วไป</h2>
             <div class="form-grid">
                 <div class="form-group">
-                    <label>ชื่อบริษัท</label>
-                    <input type="text" id="company" placeholder="กรอกชื่อบริษัท">
+                    <label>ผู้ตรวจ</label>
+                    <input type="text" id="inspector" placeholder="กรอกชื่อผู้ตรวจ">
                 </div>
+
+                <div class="form-group">
+                    <label>ประเภทรถ</label>
+                    <select id="vehicleType" onchange="toggleCustomVehicleType(this)">
+                        <option value="">-- กรุณาเลือกประเภทรถ --</option>
+                        <option value="รถเทเลอร์">รถเทเลอร์ (ชุด 3)</option>
+                        <option value="รถพ่วง">รถพ่วง (ชุด 1)</option>
+                        <option value="รถสิบล้อ">รถสิบล้อ (ชุด 2)</option>
+                        <option value="รถหกล้อ">รถหกล้อ (ชุด 3)</option>
+                        <option value="รถสาลี">รถสาลี (ชุด 1)</option>
+                        <option value="รถอีแต๋น">รถอีแต๋น (ชุด 2)</option>
+                        <option value="อื่น ๆ">อื่น ๆ (ระบุ)</option>
+                    </select>
+                    <input type="text" id="customVehicleType" placeholder="โปรดระบุประเภทรถ" style="display: none; margin-top: 8px;">
+                </div>
+
                 <div class="form-group">
                     <label>ทะเบียนรถ</label>
                     <input type="text" id="plate" placeholder="เช่น 70-1234">
                 </div>
+
                 <div class="form-group">
                     <label>สถานี</label>
                     <input type="text" id="station" placeholder="เช่น สถานี A">
                 </div>
-                <div class="form-group">
-                    <label>ผู้ตรวจ</label>
-                    <input type="text" id="inspector" placeholder="ชื่อผู้ตรวจ">
-                </div>
             </div>
-        </div>
-
-        <!-- รายการตรวจ (1-4) -->
-        <div class="card">
-            <h2>📋 รายการตรวจ (1-4)</h2>
-            <div class="inspection-grid">
-                {% for item in items[0:4] %}
-                {% set no = item.id %}
-                <div class="inspection-card" id="card{{ no }}">
-                    <h3>{{ no }}. {{ item.title }}</h3>
-                    
-                    {% if item.details %}
-                    <div class="inspection-details">
-                        <ul>
-                            {% for detail in item.details %}
-                            <li>{{ detail }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% endif %}
-
-                    {% if item.warnings %}
-                    <div class="warning-box">
-                        <strong>⚠️ ข้อควรระวัง</strong>
-                        {% for warning in item.warnings %}
-                        <p>{{ warning }}</p>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-
-                    <div class="example-box">
-                        <img src="{{ url_for('static', filename='images/item' ~ no ~ '.png') }}" class="example-image">
-                    </div>
-
-                    <div class="image-box">
-                        <div class="upload-btn-group">
-                            <label for="camera{{ no }}" class="upload-btn">📷 ถ่ายรูป</label>
-                            <input type="file" id="camera{{ no }}" accept="image/*" capture="environment" onchange="handleImageUpload(this, {{ no }})" hidden>
-
-                            <label for="gallery{{ no }}" class="upload-btn upload-btn-gallery">🖼️ เลือกไฟล์</label>
-                            <input type="file" id="gallery{{ no }}" accept="image/*" onchange="handleImageUpload(this, {{ no }})" hidden>
-                        </div>
-                        <div id="fileInfo{{ no }}" class="file-info-text">ยังไม่ได้เลือกไฟล์ภาพ</div>
-                    </div>
-
-                    <div class="status-buttons">
-                        <input type="radio" id="accept{{ no }}" name="status{{ no }}" value="ยอมรับ" class="status-btn-check" disabled>
-                        <label for="accept{{ no }}" class="btn-status btn-accept disabled-label">ยอมรับ</label>
-
-                        <input type="radio" id="na{{ no }}" name="status{{ no }}" value="ไม่เกี่ยวข้อง" class="status-btn-check" disabled>
-                        <label for="na{{ no }}" class="btn-status btn-na disabled-label">ไม่เกี่ยวข้อง</label>
-
-                        <input type="radio" id="reject{{ no }}" name="status{{ no }}" value="ไม่ยอมรับ" class="status-btn-check" disabled>
-                        <label for="reject{{ no }}" class="btn-status btn-reject disabled-label">ไม่ยอมรับ</label>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-
-            <div class="page-button">
-                <button class="next-btn" onclick="nextStep()">Next →</button>
+            
+            <div class="page-button" style="margin-top: 20px;">
+                <button class="next-btn" onclick="goToInspectionStep()">ถัดไป (เริ่มตรวจ) →</button>
             </div>
         </div>
     </div>
 
-    <!-- ========================== STEP 2 =========================== -->
+    <!-- ========================== STEP 2: รายการตรวจ + สรุปผล =========================== -->
     <div class="step" id="step2">
         <div class="card">
-            <h2>📋 รายการตรวจ (5-8)</h2>
-            <div class="inspection-grid">
-                {% for item in items[4:8] %}
-                {% set no = item.id %}
-                <div class="inspection-card" id="card{{ no }}">
-                    <h3>{{ no }}. {{ item.title }}</h3>
-
-                    {% if item.details %}
-                    <div class="inspection-details">
-                        <ul>
-                            {% for detail in item.details %}
-                            <li>{{ detail }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% endif %}
-
-                    {% if item.warnings %}
-                    <div class="warning-box">
-                        <strong>⚠️ ข้อควรระวัง</strong>
-                        {% for warning in item.warnings %}
-                        <p>{{ warning }}</p>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-
-                    <div class="example-box">
-                        <img src="{{ url_for('static', filename='images/item' ~ no ~ '.png') }}" class="example-image">
-                    </div>
-
-                    <div class="image-box">
-                        <div class="upload-btn-group">
-                            <label for="camera{{ no }}" class="upload-btn">📷 ถ่ายรูป</label>
-                            <input type="file" id="camera{{ no }}" accept="image/*" capture="environment" onchange="handleImageUpload(this, {{ no }})" hidden>
-
-                            <label for="gallery{{ no }}" class="upload-btn upload-btn-gallery">🖼️ เลือกไฟล์</label>
-                            <input type="file" id="gallery{{ no }}" accept="image/*" onchange="handleImageUpload(this, {{ no }})" hidden>
-                        </div>
-                        <div id="fileInfo{{ no }}" class="file-info-text">ยังไม่ได้เลือกไฟล์ภาพ</div>
-                    </div>
-
-                    <div class="status-buttons">
-                        <input type="radio" id="accept{{ no }}" name="status{{ no }}" value="ยอมรับ" class="status-btn-check" disabled>
-                        <label for="accept{{ no }}" class="btn-status btn-accept disabled-label">ยอมรับ</label>
-
-                        <input type="radio" id="na{{ no }}" name="status{{ no }}" value="ไม่เกี่ยวข้อง" class="status-btn-check" disabled>
-                        <label for="na{{ no }}" class="btn-status btn-na disabled-label">ไม่เกี่ยวข้อง</label>
-
-                        <input type="radio" id="reject{{ no }}" name="status{{ no }}" value="ไม่ยอมรับ" class="status-btn-check" disabled>
-                        <label for="reject{{ no }}" class="btn-status btn-reject disabled-label">ไม่ยอมรับ</label>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-
-            <div class="page-button-between">
-                <button class="back-btn" onclick="prevStep()">← Back</button>
-                <button class="next-btn" onclick="nextStep()">Next →</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========================== STEP 3 =========================== -->
-    <div class="step" id="step3">
-        <div class="card">
-            <h2>📋 รายการตรวจ (9-12)</h2>
-            <div class="inspection-grid">
-                {% for item in items[8:12] %}
-                {% set no = item.id %}
-                <div class="inspection-card" id="card{{ no }}">
-                    <h3>{{ no }}. {{ item.title }}</h3>
-
-                    {% if item.details %}
-                    <div class="inspection-details">
-                        <ul>
-                            {% for detail in item.details %}
-                            <li>{{ detail }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% endif %}
-
-                    {% if item.warnings %}
-                    <div class="warning-box">
-                        <strong>⚠️ ข้อควรระวัง</strong>
-                        {% for warning in item.warnings %}
-                        <p>{{ warning }}</p>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-
-                    <div class="example-box">
-                        <img src="{{ url_for('static', filename='images/item' ~ no ~ '.png') }}" class="example-image">
-                    </div>
-
-                    <div class="image-box">
-                        <div class="upload-btn-group">
-                            <label for="camera{{ no }}" class="upload-btn">📷 ถ่ายรูป</label>
-                            <input type="file" id="camera{{ no }}" accept="image/*" capture="environment" onchange="handleImageUpload(this, {{ no }})" hidden>
-
-                            <label for="gallery{{ no }}" class="upload-btn upload-btn-gallery">🖼️ เลือกไฟล์</label>
-                            <input type="file" id="gallery{{ no }}" accept="image/*" onchange="handleImageUpload(this, {{ no }})" hidden>
-                        </div>
-                        <div id="fileInfo{{ no }}" class="file-info-text">ยังไม่ได้เลือกไฟล์ภาพ</div>
-                    </div>
-
-                    <div class="status-buttons">
-                        <input type="radio" id="accept{{ no }}" name="status{{ no }}" value="ยอมรับ" class="status-btn-check" disabled>
-                        <label for="accept{{ no }}" class="btn-status btn-accept disabled-label">ยอมรับ</label>
-
-                        <input type="radio" id="na{{ no }}" name="status{{ no }}" value="ไม่เกี่ยวข้อง" class="status-btn-check" disabled>
-                        <label for="na{{ no }}" class="btn-status btn-na disabled-label">ไม่เกี่ยวข้อง</label>
-
-                        <input type="radio" id="reject{{ no }}" name="status{{ no }}" value="ไม่ยอมรับ" class="status-btn-check" disabled>
-                        <label for="reject{{ no }}" class="btn-status btn-reject disabled-label">ไม่ยอมรับ</label>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+            <h2 id="inspectionTitle">📋 รายการตรวจ</h2>
+            
+            <!-- ตำแหน่งที่จะนำรายการตรวจมาแสดงผ่าน JS -->
+            <div class="inspection-grid" id="inspectionContainer"></div>
         </div>
 
         <!-- สรุปผล -->
@@ -254,13 +94,12 @@
                     <input type="checkbox" id="accept">
                     <label for="accept">ยอมรับเงื่อนไข</label>
                 </div>
-                <!-- ปุ่มผูก event กดส่ง + โหลด PDF -->
-                <button id="submitBtn" class="submit-btn" onclick="submitAndDownloadPDF()">✅ ยืนยันการส่ง</button>
+                <button id="submitBtn" class="submit-btn">✅ ยืนยันการส่ง</button>
             </div>
         </div>
 
-        <div class="page-button">
-            <button class="back-btn" onclick="prevStep()">← Back</button>
+        <div class="page-button-between">
+            <button class="back-btn" onclick="prevStep()">← ย้อนกลับ</button>
         </div>
     </div>
 
@@ -277,10 +116,8 @@
 <!-- ================= TEMPLATE CERTIFICATE ================= -->
 <div id="pdf-wrapper" style="position: absolute; left: -9999px; top: -9999px;">
     <div id="pdf-template" class="cert-container">
-        <!-- เส้นขอบกรอบทองด้านนอก -->
         <div class="cert-gold-border">
             
-            <!-- ตกแต่งมุมกรอบสามเหลี่ยมสีน้ำเงิน/ทอง -->
             <div class="corner-shape top-left"></div>
             <div class="corner-shape top-right"></div>
             <div class="corner-shape bottom-left"></div>
@@ -295,11 +132,11 @@
 
             <!-- กล่องข้อมูล 2 ฝั่ง -->
             <div class="cert-grid">
-                <!-- Vehicle Information -->
                 <div class="cert-card">
                     <div class="cert-card-header">Vehicle Information</div>
                     <div class="cert-card-body info-list">
                         <p><strong>ชื่อผู้ตรวจ :</strong> <span id="pdf-inspector">XX</span></p>
+                        <p><strong>ประเภทรถ :</strong> <span id="pdf-vehicle-type">XX</span></p>
                         <p><strong>ทะเบียนรถ :</strong> <span id="pdf-plate">XX</span></p>
                         <p><strong>สถานี :</strong> <span id="pdf-station">XX</span></p>
                         <p><strong>วันที่ตรวจสอบ :</strong> <span id="pdf-date">XX</span></p>
@@ -307,13 +144,12 @@
                     </div>
                 </div>
 
-                <!-- Inspection Result -->
                 <div class="cert-card">
                     <div class="cert-card-header">Inspection Result</div>
                     <div class="cert-card-body flex-center">
                         <div class="result-status-box">
                             <span class="green-check-icon">✔</span>
-                            <span class="status-text">ผ่านการตรวจสอบทั้ง 12 รายการ</span>
+                            <span class="status-text" id="pdf-result-text">ผ่านการตรวจสอบเรียบร้อย</span>
                         </div>
                     </div>
                 </div>
@@ -323,21 +159,22 @@
             <div class="cert-card full-width">
                 <div class="cert-card-header">SCOPE OF INSPECTION</div>
                 <div class="cert-card-body">
-                    <!-- ส่วนแสดงรูปภาพทั้ง 12 รูป -->
                     <div id="pdf-gallery" class="gallery-container"></div>
 
-                    <!-- ข้อความรับรองไว้ที่นี่ -->
                     <div class="cert-certification-box">
                         <p>ขอรับรองว่ารถ ทะเบียน <strong id="pdf-scope-plate">-</strong> คันดังกล่าว ได้รับการตรวจสอบตามรายการที่กำหนดเรียบร้อยแล้ว และมีผลการตรวจสอบผ่านตามที่ระบุไว้เบื้องต้น</p>
                     </div>
                 </div>
             </div>
 
-        </div> <!-- ปิด .cert-gold-border -->
-    </div> <!-- ปิด #pdf-template -->
-</div> <!-- ปิด #pdf-wrapper -->
+        </div>
+    </div>
+</div>
 
-<!-- JS Libraries -->
+<!-- ส่งข้อมูล items จาก Jinja2 เข้า JavaScript -->
+<script>
+    const allItems = {{ items | tojson }};
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='script.js') }}"></script>
 
