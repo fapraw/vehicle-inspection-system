@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vehicle Inspection</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Google Fonts ให้ตรงกับงานเอกสารสวยงาม -->
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
@@ -274,7 +274,7 @@
     </div>
 </div>
 
-<!-- ================= TEMPLATE CERTIFICATE (ดีไซน์ถอดแบบจากรูปภาพ) ================= -->
+<!-- ================= TEMPLATE CERTIFICATE ================= -->
 <div id="pdf-wrapper" style="position: absolute; left: -9999px; top: -9999px;">
     <div id="pdf-template" class="cert-container">
         <!-- เส้นขอบกรอบทองด้านนอก -->
@@ -319,26 +319,25 @@
                 </div>
             </div>
 
-            <!-- Scope Of Inspection (ใส่รูป 12 รูปเรียงเป็นกริด) -->
+            <!-- กรอบ Scope Of Inspection -->
             <div class="cert-card full-width">
-                <div class="cert-card-header">Scope Of Inspection</div>
-                <div class="cert-card-body gallery-container" id="pdf-gallery">
-                    <!-- JS จะใส่รูปตรงนี้ -->
+                <div class="cert-card-header">SCOPE OF INSPECTION</div>
+                <div class="cert-card-body">
+                    <!-- ส่วนแสดงรูปภาพทั้ง 12 รูป -->
+                    <div id="pdf-gallery" class="gallery-container"></div>
+
+                    <!-- ข้อความรับรองไว้ที่นี่ -->
+                    <div class="cert-certification-box">
+                        <p>ขอรับรองว่ารถ ทะเบียน <strong id="pdf-scope-plate">-</strong> คันดังกล่าว ได้รับการตรวจสอบตามรายการที่กำหนดเรียบร้อยแล้ว และมีผลการตรวจสอบผ่านตามที่ระบุไว้เบื้องต้น</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- ข้อความส่วนท้าย -->
-            <div class="cert-footer">
-                <p>ขอรับรองว่ารถ ทะเบียน <span id="pdf-footer-plate">XXX</span> คันดังกล่าว</p>
-                <p>ได้รับการตรวจสอบตามรายการที่กำหนดเรียบร้อยแล้ว</p>
-                <p>และมีผลการตรวจสอบตามที่ระบุไว้ข้างต้น</p>
-            </div>
+        </div> <!-- ปิด .cert-gold-border -->
+    </div> <!-- ปิด #pdf-template -->
+</div> <!-- ปิด #pdf-wrapper -->
 
-        </div>
-    </div>
-</div>
-
-<!-- Library html2pdf สำหรับแปลงส่วนนี้เป็น PDF -->
+<!-- JS Libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='script.js') }}"></script>
 
