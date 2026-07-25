@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vehicle Inspection</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Google Fonts ให้ตรงกับงานเอกสารสวยงาม -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -14,7 +16,6 @@
 
     <!-- ========================== STEP 1 =========================== -->
     <div class="step active" id="step1">
-
         <!-- Header -->
         <div class="header">
             <div class="header-left">
@@ -60,7 +61,6 @@
         <div class="card">
             <h2>📋 รายการตรวจ (1-4)</h2>
             <div class="inspection-grid">
-
                 {% for item in items[0:4] %}
                 {% set no = item.id %}
                 <div class="inspection-card" id="card{{ no }}">
@@ -89,7 +89,6 @@
                         <img src="{{ url_for('static', filename='images/item' ~ no ~ '.png') }}" class="example-image">
                     </div>
 
-                    <!-- อัปโหลดรูป -->
                     <div class="image-box">
                         <div class="upload-btn-group">
                             <label for="camera{{ no }}" class="upload-btn">📷 ถ่ายรูป</label>
@@ -101,7 +100,6 @@
                         <div id="fileInfo{{ no }}" class="file-info-text">ยังไม่ได้เลือกไฟล์ภาพ</div>
                     </div>
 
-                    <!-- ปุ่มสถานะ -->
                     <div class="status-buttons">
                         <input type="radio" id="accept{{ no }}" name="status{{ no }}" value="ยอมรับ" class="status-btn-check" disabled>
                         <label for="accept{{ no }}" class="btn-status btn-accept disabled-label">ยอมรับ</label>
@@ -114,7 +112,6 @@
                     </div>
                 </div>
                 {% endfor %}
-
             </div>
 
             <div class="page-button">
@@ -257,13 +254,9 @@
                     <input type="checkbox" id="accept">
                     <label for="accept">ยอมรับเงื่อนไข</label>
                 </div>
-                <button id="submitBtn" class="submit-btn">✅ ยืนยันการส่ง</button>
+                <!-- ปุ่มผูก event กดส่ง + โหลด PDF -->
+                <button id="submitBtn" class="submit-btn" onclick="submitAndDownloadPDF()">✅ ยืนยันการส่ง</button>
             </div>
-        </div>
-
-        <!-- Certificate -->
-        <div class="card certificate-card">
-            <button class="certificate-btn">📄 Certificate</button>
         </div>
 
         <div class="page-button">
@@ -273,15 +266,81 @@
 
 </div>
 
-<script src="{{ url_for('static', filename='script.js') }}"></script>
-
-<!-- Modal สำหรับเปิดดูรูปภาพเต็มหน้าจอ -->
+<!-- Modal เปิดดูรูป -->
 <div id="imageModal" class="modal-overlay" onclick="closeImageModal()">
     <div class="modal-content" onclick="event.stopPropagation()">
         <span class="modal-close" onclick="closeImageModal()">&times;</span>
         <img id="modalImage" src="" alt="ภาพแนบ">
     </div>
 </div>
+
+<!-- ================= TEMPLATE CERTIFICATE (ดีไซน์ถอดแบบจากรูปภาพ) ================= -->
+<div id="pdf-wrapper" style="position: absolute; left: -9999px; top: -9999px;">
+    <div id="pdf-template" class="cert-container">
+        <!-- เส้นขอบกรอบทองด้านนอก -->
+        <div class="cert-gold-border">
+            
+            <!-- ตกแต่งมุมกรอบสามเหลี่ยมสีน้ำเงิน/ทอง -->
+            <div class="corner-shape top-left"></div>
+            <div class="corner-shape top-right"></div>
+            <div class="corner-shape bottom-left"></div>
+            <div class="corner-shape bottom-right"></div>
+
+            <div class="cert-header">
+                <h1 class="cert-title-main">MITR PHOL</h1>
+                <h2 class="cert-title-sub">PHULAUNG</h2>
+                <h3 class="cert-title-doc">CERTIFICATE</h3>
+                <p class="cert-title-desc">OF VEHICLE INSPECTION</p>
+            </div>
+
+            <!-- กล่องข้อมูล 2 ฝั่ง -->
+            <div class="cert-grid">
+                <!-- Vehicle Information -->
+                <div class="cert-card">
+                    <div class="cert-card-header">Vehicle Information</div>
+                    <div class="cert-card-body info-list">
+                        <p><strong>ชื่อผู้ตรวจ :</strong> <span id="pdf-inspector">XX</span></p>
+                        <p><strong>ทะเบียนรถ :</strong> <span id="pdf-plate">XX</span></p>
+                        <p><strong>สถานี :</strong> <span id="pdf-station">XX</span></p>
+                        <p><strong>วันที่ตรวจสอบ :</strong> <span id="pdf-date">XX</span></p>
+                        <p><strong>เวลา :</strong> <span id="pdf-time">XX</span></p>
+                    </div>
+                </div>
+
+                <!-- Inspection Result -->
+                <div class="cert-card">
+                    <div class="cert-card-header">Inspection Result</div>
+                    <div class="cert-card-body flex-center">
+                        <div class="result-status-box">
+                            <span class="green-check-icon">✔</span>
+                            <span class="status-text">ผ่านการตรวจสอบทั้ง 12 รายการ</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scope Of Inspection (ใส่รูป 12 รูปเรียงเป็นกริด) -->
+            <div class="cert-card full-width">
+                <div class="cert-card-header">Scope Of Inspection</div>
+                <div class="cert-card-body gallery-container" id="pdf-gallery">
+                    <!-- JS จะใส่รูปตรงนี้ -->
+                </div>
+            </div>
+
+            <!-- ข้อความส่วนท้าย -->
+            <div class="cert-footer">
+                <p>ขอรับรองว่ารถ ทะเบียน <span id="pdf-footer-plate">XXX</span> คันดังกล่าว</p>
+                <p>ได้รับการตรวจสอบตามรายการที่กำหนดเรียบร้อยแล้ว</p>
+                <p>และมีผลการตรวจสอบตามที่ระบุไว้ข้างต้น</p>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Library html2pdf สำหรับแปลงส่วนนี้เป็น PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 
 </body>
 </html>
