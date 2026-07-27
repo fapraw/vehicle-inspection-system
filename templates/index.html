@@ -1,182 +1,142 @@
-<!DOCTYPE html>
-<html lang="th">
+from flask import Flask, render_template
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vehicle Inspection</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
-</head>
+app = Flask(__name__)
 
-<body>
+items = [
+    {
+        "id": 1,
+        "title": "สภาพแผงข้างรถบรรทุกอ้อยต้องแข็งแรง เป็นแนวตรง",
+        "details": [
+            "ต้องไม่มีอ้อยเสียบออกมาที่ด้านนอกแผงข้างรถบรรทุก",
+        ],
+        "warnings": [
+            "- หากแผงข้างมีการผุหรือชำรุด จะทำให้อ้อยเข้าไปเสียบบริเวณนั้นได้ ขณะดั๊มพ์อ้อย และทำให้เกิดความเสียหายต่อแผงข้างกระบะและยังทำให้ใช้เวลาในการดั๊มพ์อ้อยนานขึ้น จากการต้องเคลียร์อ้อยในกระบะ",
+            "- เมื่อฝาข้างที่ไม่แข็งแรงสามารถหลุดตกลงไปในสะพานลำเลียงอ้อย ชำรุดจากการทับกระแทกของลำอ้อย และต้องเสียเวลาในการหยุดเพื่อนำแผงข้างขึ้นจากสะพานลำเลียงอ้อย",
+        ],
+    },
+    {
+        "id": 2,
+        "title": "สภาพแผงข้างรถบรรทุกต้องแข็งแรง เป็นแนวตรง",
+        "details": ["แผงข้างด้านล่างกระบะเทเลอร์ต้องติดแผ่นเหล็กเรียบด้านในยาวตลอดแนว ให้มีความสูง 1.2 ม. และหนา 3 มม. ขึ้นไป"],
+        "warnings": [
+            "- หากมีช่องว่างเยอะ จะทำให้อ้อยเข้าไปเสียบบริเวณนั้น ใช้เวลาดั๊มพ์อ้อยนานจากการต้องเคลียร์อ้อยในกระบะและทำให้เกิดความเสียหายต่อแผงข้างกระบะ"
+        ],
+    },
+    {
+        "id": 3,
+        "title": "รถเทเลอร์ ขาค้ำยันต้องแข็งแรงปลอดภัย โครงสร้างกระบะต้องได้ตามมาตรฐาน",
+        "details": [
+            "รถเทเลอร์ต้องมีขาค้ำยัน 4 ขา แข็งแรงปลอดภัย"
+        ],
+        "warnings": [
+            "- ขาค้ำยันต้องมี 4 ขา เพื่อความปลอดภัยในการคล้องโซ่และดั๊มพ์ ซึ่งอาจทำให้พนักงานคล้องโซ่ถูกรถบรรทุกทับได้"
+        ],
+    },
+    {
+        "id": 4,
+        "title": "รถเทเลอร์ รถพ่วง ต้องมีจุดสำหรับคล้องโซ่ เชื่อมยึดให้แข็งแรง ต้องได้ตามมาตรฐาน",
+        "details": [
+            "จุดคล้องโซ่แข็งแรง ขณะดั๊มพ์อ้อยต้องไม่ฉีกขาด"
+        ],
+        "warnings": [
+            "- กรณีจุดคล้องโซ่มีไม่แข็งแรงหรือรับแรงไม่ได้ จะส่งผลให้รถบรรทุกอ้อยตกดั๊มพ์ จากจุดคล้องโซ่ฉีกขาด Stopper และทำให้รถตกดั๊มพ์",
+            "- จุดคล้องโซ่แข็งแรง (ถ้าคานคล้องเป็นเหล็กไม่น้อยกว่า 6 นิ้ว ต้องมีหูช้างคล้องโซ่ที่หนาไม่น้อยกว่า 18 มม. พร้อมรอยเชื่อมที่แข็งแรง)"
+        ],
+    },
+    {
+        "id": 5,
+        "title": "รถบรรทุกอ้อยที่มีดั๊มพ์ทุกคันต้องมีการล๊อคดั๊มพ์ของตัวกระบะ",
+        "details": [
+            "รถบรรทุกอ้อยที่มีดัมพ์ทุกคันต้องมีการล๊อคดัมพ์ของตัวกระบะ ตามมาตรฐานโรงงานกำหนด"
+        ],
+        "warnings": [
+            "- เพื่อป้องกันไม่ให้กระบะยกขึ้น ขณะดั๊มพ์อ้อยซึ่งจะทำให้น้ำหนักรถไปอยู่ที่ท้ายรถ ทำให้ล้อรถบรรทุกข้าม Stopper และทำให้รถตกดั๊มพ์",
+            "- ขนาด น๊อตยึด ต้องมีขนาดไม่น้อยกว่า M16"
+        ],
+    },
+    {
+        "id": 6,
+        "title": "เสาหลักกันอ้อยหล่นด้านข้างต้องยึดให้แข็งแรง",
+        "details": [
+            "ในขณะดั๊มพ์อ้อยเสาเหล็กรถบรรทุกต้องไม่ตกสะพาน"
+        ],
+        "warnings": [
+            "- ตรวจสอบความแข็งแรงของเสาค้ำ เนื่องจากเสาค้ำที่ไม่แข็งแรงจะทำให้เสาร่วงหล่นลงสะพานไซด์ ส่งผลกระทบต่อการลำเลียงอ้อยและกระบวนการหีบอ้อย",
+            "- เสาที่ใช้ทำหลักต้องมีความแข็งแรง ไม่ใช้ต้นอ้อยทำเป็นเสากันอ้อยหล่น (เสาหลักต้องมีระยะห่าง 80-90 ซม.)",
+        ],
+    },
+    {
+        "id": 7,
+        "title": "การต่อท้ายกระบะรถบรรทุกอ้อยรถตัด ชุดสลักปลดล็อคต้องแข็งแรงและสลักต้องการต่อยาวถึงท้ายกระบะ",
+        "details": [
+            "ในการปลดสลักท้ายรถบรรทุกอ้อย ต้องไม่เกิดอุบัติเหตุ"
+        ],
+        "warnings": [
+            "- หากชุดสลักปลดสั้นทำให้คนต้องเอื้อมไปไกลเพื่อไปปลดสลัก อาจจะทำให้เกิดอันตราย คนพลัดตกลงไปในสะพาน ซึ่งเป็นอันตรายถึงชีวิต",
+            "- จุดปลดสลักที่ไม่ถูกตำแหน่งส่งผลต่อความปลอดภัยกับคนขับรถในการปลดล็อค ซึ่งอาจตกสะพานหรืออ้อยทับได้"
+        ],
+    },
+    {
+        "id": 8,
+        "title": "การยึดยางอะไหล่ ชุดล็อคยางอะไหล่ต้องไม่หลวมคลอนและใช้น็อตยึดยางให้แน่น",
+        "details": [
+            "ในขณะดั๊มพ์อ้อยล้ออะไหล่รถบรรทุกต้องไม่ตกสะพาน"
+        ],
+        "warnings": [
+            "- ชุดยางอะไหล่ ถ้ายึดไม่แน่นหลุดเข้าไปในเครื่องจักรแล้ว จะส่งผลให้เครื่องจักรเสียหายและต้องหยุดหีบอ้อย",
+            "- หากล้ออะไหล่หลุดออกจากตัวรถจะส่งผลให้ตกลงไปยังสะพานทำให้ต้องหยุดการหีบอ้อย"
+        ],
+    },
+    {
+        "id": 9,
+        "title": "เหล็กรางรถไฟรับฝาท้ายต้องยึดติดแข็งแรง ไม่หลุดออกมาจากตัวรถและขวางทางอ้อย",
+        "details": [
+            "ในขณะดั๊มพ์อ้อยเหล็กรางรถบรรทุกต้องไม่ตกสะพาน"
+        ],
+        "warnings": [
+            "- เหล็กรางรถไฟท้ายรถ ถ้าหลุดเข้าไปในเครื่องจักร จะทำให้เครื่องจักรเสียหาย ต้องหยุดหีบอ้อย"
+        ],
+    },
+    {
+        "id": 10,
+        "title": "กันชนด้านท้าย และแผ่นบังโคลนจะต้องมีความสูงจากพื้นไม่น้อยกว่า 60 ซม.",
+        "details": ["กันชนด้านท้ายรถต้องไม่ขวางการชน ระหว่างล้อรถบรรทุกกับ Stopper"],
+        "warnings": [
+            "- เพื่อป้องกันความเสียหายเวลารถถอยชนยันล้อ แผ่นบังโคลนจะส่งผลต่อการถอยรถ ล้อรถไม่ชน Stopper ส่งผลให้ตอนดั๊มพ์อ้อยจะสามารถขยับได้ แล้วทำให้รถบรรทุกตกดั๊มพ์"
+        ],
+    },
+    {
+        "id": 11,
+        "title": "ลมยางล้อรถบรรทุกอ้อย ต้องมีความดันมากกว่า 130 ปอนด์/ตร.นิ้ว",
+        "details": [
+            "ล้อหลังรถบรรทุกต้องไม่ถอยข้าม Stopper ขณะดั๊มพ์อ้อย"
+        ],
+        "warnings": [
+            "- ตรวจเนื่องจากแรงดันลมยางรถบรรทุกที่ถอยชน Stopper ถ้าต่ำกว่ามาตรฐาน สามารถทำให้ล้อข้าม Stopper ได้เมื่ออ้อยลงสะพาน"
+        ],
+    },
+    {
+        "id": 12,
+        "title": "การต่อเติมท้ายรถบรรทุกอ้อยต้องแข็งแรง",
+        "details": ["ในขณะดั๊มพ์อ้อยเหล็กท้ายรถบรรทุกต้องไม่ตกสะพาน"],
+        "warnings": [
+            "- กรณีท้ายรถบรรทุกยึดติดไม่แน่นกับตัวรถจะส่งผลให้ขณะดั๊มพ์อ้อย น้ำหนักอ้อยจะไปกดที่ท้ายรถบรรทุก ส่งผลให้ท้ายรถบรรทุกตกสะพาน ทำให้หยุดหีบอ้อย"
+        ],
+    },
+]
 
-<div class="container">
 
-    <!-- ========================== STEP 1: ข้อมูลทั่วไป =========================== -->
-    <div class="step active" id="step1">
-        <!-- Header -->
-        <div class="header">
-            <div class="header-left">
-                <h1>🚗 Vehicle Inspection</h1>
-                <p>ระบบตรวจสภาพรถ</p>
-            </div>
-            <div class="header-right">
-                <div class="datetime">
-                    <label>วันที่</label>
-                    <span id="currentDate"></span>
-                </div>
-                <div class="datetime">
-                    <label>เวลา</label>
-                    <span id="currentTime"></span>
-                </div>
-            </div>
-        </div>
+@app.route("/")
+def home():
+    return render_template(
+        "index.html",
+        items=items
+    )
 
-        <!-- ข้อมูลทั่วไป -->
-        <div class="card">
-            <h2>ข้อมูลทั่วไป</h2>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>ผู้ตรวจ</label>
-                    <input type="text" id="inspector" placeholder="กรอกชื่อผู้ตรวจ">
-                </div>
 
-                <div class="form-group">
-                    <label>ประเภทรถ</label>
-                    <select id="vehicleType" onchange="toggleCustomVehicleType(this)">
-                        <option value="">-- กรุณาเลือกประเภทรถ --</option>
-                        <option value="รถเทเลอร์">รถเทเลอร์ (ชุด 3)</option>
-                        <option value="รถพ่วง">รถพ่วง (ชุด 1)</option>
-                        <option value="รถสิบล้อ">รถสิบล้อ (ชุด 2)</option>
-                        <option value="รถหกล้อ">รถหกล้อ (ชุด 3)</option>
-                        <option value="รถสาลี">รถสาลี (ชุด 1)</option>
-                        <option value="รถอีแต๋น">รถอีแต๋น (ชุด 2)</option>
-                        <option value="อื่น ๆ">อื่น ๆ (ระบุ)</option>
-                    </select>
-                    <input type="text" id="customVehicleType" placeholder="โปรดระบุประเภทรถ" style="display: none; margin-top: 8px;">
-                </div>
-
-                <div class="form-group">
-                    <label>ทะเบียนรถ</label>
-                    <input type="text" id="plate" placeholder="เช่น 70-1234">
-                </div>
-
-                <div class="form-group">
-                    <label>สถานี</label>
-                    <input type="text" id="station" placeholder="เช่น สถานี A">
-                </div>
-            </div>
-            
-            <div class="page-button" style="margin-top: 20px;">
-                <button class="next-btn" onclick="goToInspectionStep()">ถัดไป (เริ่มตรวจ) →</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========================== STEP 2: รายการตรวจ + สรุปผล =========================== -->
-    <div class="step" id="step2">
-        <div class="card">
-            <h2 id="inspectionTitle">📋 รายการตรวจ</h2>
-            
-            <!-- ตำแหน่งที่จะนำรายการตรวจมาแสดงผ่าน JS -->
-            <div class="inspection-grid" id="inspectionContainer"></div>
-        </div>
-
-        <!-- สรุปผล -->
-        <div class="card">
-            <h2>📄 สรุปผล</h2>
-            <div class="summary-box">
-                <p>ข้าพเจ้าได้ทำการตรวจเช็คสภาพรถเรียบร้อยแล้ว</p>
-                <p>หากเกิดความเสียหายจากการตรวจสอบ บริษัทจะไม่รับผิดชอบทุกกรณี</p>
-                <div class="accept-box">
-                    <input type="checkbox" id="accept">
-                    <label for="accept">ยอมรับเงื่อนไข</label>
-                </div>
-                <button id="submitBtn" class="submit-btn">✅ ยืนยันการส่ง</button>
-            </div>
-        </div>
-
-        <div class="page-button-between">
-            <button class="back-btn" onclick="prevStep()">← ย้อนกลับ</button>
-        </div>
-    </div>
-
-</div>
-
-<!-- Modal เปิดดูรูป -->
-<div id="imageModal" class="modal-overlay" onclick="closeImageModal()">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <span class="modal-close" onclick="closeImageModal()">&times;</span>
-        <img id="modalImage" src="" alt="ภาพแนบ">
-    </div>
-</div>
-
-<!-- ================= TEMPLATE CERTIFICATE ================= -->
-<div id="pdf-wrapper" style="position: absolute; left: -9999px; top: -9999px;">
-    <div id="pdf-template" class="cert-container">
-        <div class="cert-gold-border">
-            
-            <div class="corner-shape top-left"></div>
-            <div class="corner-shape top-right"></div>
-            <div class="corner-shape bottom-left"></div>
-            <div class="corner-shape bottom-right"></div>
-
-            <div class="cert-header">
-                <h1 class="cert-title-main">MITR PHOL</h1>
-                <h2 class="cert-title-sub">PHULAUNG</h2>
-                <h3 class="cert-title-doc">CERTIFICATE</h3>
-                <p class="cert-title-desc">OF VEHICLE INSPECTION</p>
-            </div>
-
-            <!-- กล่องข้อมูล 2 ฝั่ง -->
-            <div class="cert-grid">
-                <div class="cert-card">
-                    <div class="cert-card-header">Vehicle Information</div>
-                    <div class="cert-card-body info-list">
-                        <p><strong>ชื่อผู้ตรวจ :</strong> <span id="pdf-inspector">XX</span></p>
-                        <p><strong>ประเภทรถ :</strong> <span id="pdf-vehicle-type">XX</span></p>
-                        <p><strong>ทะเบียนรถ :</strong> <span id="pdf-plate">XX</span></p>
-                        <p><strong>สถานี :</strong> <span id="pdf-station">XX</span></p>
-                        <p><strong>วันที่ตรวจสอบ :</strong> <span id="pdf-date">XX</span></p>
-                        <p><strong>เวลา :</strong> <span id="pdf-time">XX</span></p>
-                    </div>
-                </div>
-
-                <div class="cert-card">
-                    <div class="cert-card-header">Inspection Result</div>
-                    <div class="cert-card-body flex-center">
-                        <div class="result-status-box">
-                            <span class="green-check-icon">✔</span>
-                            <span class="status-text" id="pdf-result-text">ผ่านการตรวจสอบเรียบร้อย</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- กรอบ Scope Of Inspection -->
-            <div class="cert-card full-width">
-                <div class="cert-card-header">SCOPE OF INSPECTION</div>
-                <div class="cert-card-body">
-                    <div id="pdf-gallery" class="gallery-container"></div>
-
-                    <div class="cert-certification-box">
-                        <p>ขอรับรองว่ารถ ทะเบียน <strong id="pdf-scope-plate">-</strong> คันดังกล่าว ได้รับการตรวจสอบตามรายการที่กำหนดเรียบร้อยแล้ว และมีผลการตรวจสอบผ่านตามที่ระบุไว้เบื้องต้น</p>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</div>
-
-<!-- ส่งข้อมูล items จาก Jinja2 เข้า JavaScript -->
-<script>
-    const allItems = {{ items | tojson }};
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script src="{{ url_for('static', filename='script.js') }}"></script>
-
-</body>
-</html>
+if __name__ == "__main__":
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=True
+    )
