@@ -53,13 +53,27 @@ function toggleCustomVehicleType(selectEl) {
 let activeItems = []; // เก็บรายการตรวจของประเภทรถที่กำลังเลือกอยู่
 
 function goToInspectionStep() {
+    // 🔒 ตรวจสอบการกรอกข้อมูลใน Step 1 ให้ครบถ้วนก่อนถัดไป
+    const inspector = document.getElementById("inspector")?.value.trim();
+    const plate = document.getElementById("plate")?.value.trim();
+    const station = document.getElementById("station")?.value.trim();
     const selectType = document.getElementById("vehicleType")?.value;
     const customType = document.getElementById("customVehicleType")?.value.trim();
+
+    // เช็คว่าประเภทรถเลือก "อื่น ๆ" แล้วพิมพ์ระบุไว้หรือไม่
     const vehicleType = selectType === "อื่น ๆ" ? customType : selectType;
 
-    if (!vehicleType) {
-        alert("⚠️ กรุณาเลือกประเภทรถก่อนดำเนินการต่อ");
-        return;
+    // เก็บรายการช่องที่ยังไม่ได้กรอกเพื่อแจ้งเตือน
+    let missingFields = [];
+    if (!inspector) missingFields.push("ชื่อผู้ตรวจ");
+    if (!selectType) missingFields.push("ประเภทรถ");
+    if (selectType === "อื่น ๆ" && !customType) missingFields.push("การระบุประเภทรถเพิ่มเติม");
+    if (!plate) missingFields.push("ทะเบียนรถ");
+    if (!station) missingFields.push("สถานี/จุดตรวจ");
+
+    if (missingFields.length > 0) {
+        alert(`⚠️ กรุณากรอกข้อมูลหน้าแรกให้ครบถ้วนก่อนกดถัดไป:\n- ${missingFields.join("\n- ")}`);
+        return; // หยุดการทำงาน ไม่ให้ไป Step 2
     }
 
     // Render รายการตรวจตามประเภทรถ
@@ -86,24 +100,39 @@ function renderInspectionItems(vehicleType) {
 
     container.innerHTML = ""; // ล้างข้อมูลเก่า
 
-    // กรองชุดข้อมูลจากประเภทรถ
-    if (vehicleType === "รถพ่วง" || vehicleType === "รถสาลี") {
-        activeItems = allItems.slice(0, 4); // ชุด 1 (รายการ 1-4)
-        if (titleElement) titleElement.innerText = "📋 รายการตรวจ ชุดที่ 1 (รายการ 1-4)";
-    } else if (vehicleType === "รถสิบล้อ" || vehicleType === "รถอีแต๋น") {
-        activeItems = allItems.slice(4, 8); // ชุด 2 (รายการ 5-8)
-        if (titleElement) titleElement.innerText = "📋 รายการตรวจ ชุดที่ 2 (รายการ 5-8)";
-    } else if (vehicleType === "รถเทเลอร์" || vehicleType === "รถหกล้อ") {
-        activeItems = allItems.slice(8, 12); // ชุด 3 (รายการ 9-12)
-        if (titleElement) titleElement.innerText = "📋 รายการตรวจ ชุดที่ 3 (รายการ 9-12)";
+    // กำหนดรายการตรวจ (IDs) และชื่อส่วนตามประเภทรถ (ตัดคำว่า "ชุดที่ X" ออกแล้ว)
+    let targetIds = [];
+    let groupTitle = "";
+
+    if (vehicleType === "รถเทเลอร์" || vehicleType === "เทเลอร์") {
+        targetIds = [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12];
+        groupTitle = `📋 รายการตรวจ (${vehicleType})`;
+    } else if (vehicleType === "รถพ่วง") {
+        targetIds = [1, 2, 5, 6, 7, 8, 9, 10, 11, 12];
+        groupTitle = `📋 รายการตรวจ (${vehicleType})`;
+    } else if (vehicleType === "รถสิบล้อ") {
+        targetIds = [1, 5, 6, 7, 8, 9, 10, 11, 12];
+        groupTitle = `📋 รายการตรวจ (${vehicleType})`;
+    } else if (vehicleType === "รถหกล้อ") {
+        targetIds = [1, 5, 8, 9, 11, 12];
+        groupTitle = `📋 รายการตรวจ (${vehicleType})`;
     } else {
-        activeItems = allItems; // แสดงทั้งหมดกรณีอื่น ๆ
-        if (titleElement) titleElement.innerText = "📋 รายการตรวจทั้งหมด";
+        // สำหรับ รถอีแต๋น และ อื่น ๆ
+        targetIds = [1, 8, 11, 12];
+        groupTitle = `📋 รายการตรวจ (${vehicleType})`;
+    }
+
+    // กรองเอาเฉพาะไอเทมที่มี id ตรงกับที่กำหนด
+    activeItems = allItems.filter(item => targetIds.includes(Number(item.id)));
+
+    if (titleElement) {
+        titleElement.innerText = groupTitle;
     }
 
     // สร้าง HTML สำหรับแต่ละรายการ
-    activeItems.forEach(item => {
-        const no = item.id;
+    activeItems.forEach((item, index) => {
+        const no = item.id;          // id ดั้งเดิมสำหรับใช้ผูก ID ของ HTML elements และรูปภาพ
+        const displayNo = index + 1; // ลำดับที่ใช้แสดงผลจริงบนหน้าจอ (เรียง 1, 2, 3, ...)
 
         let detailsHtml = "";
         if (item.details && item.details.length > 0) {
@@ -124,7 +153,7 @@ function renderInspectionItems(vehicleType) {
 
         const cardHtml = `
             <div class="inspection-card" id="card${no}">
-                <h3>${no}. ${item.title}</h3>
+                <h3>${displayNo}. ${item.title}</h3>
                 ${detailsHtml}
                 ${warningsHtml}
 
@@ -146,9 +175,6 @@ function renderInspectionItems(vehicleType) {
                 <div class="status-buttons">
                     <input type="radio" id="accept${no}" name="status${no}" value="ยอมรับ" class="status-btn-check" disabled>
                     <label for="accept${no}" class="btn-status btn-accept disabled-label">ผ่าน</label>
-
-                    <input type="radio" id="na${no}" name="status${no}" value="ไม่เกี่ยวข้อง" class="status-btn-check" disabled>
-                    <label for="na${no}" class="btn-status btn-na disabled-label">ไม่เกี่ยวข้อง</label>
 
                     <input type="radio" id="reject${no}" name="status${no}" value="ไม่ยอมรับ" class="status-btn-check" disabled>
                     <label for="reject${no}" class="btn-status btn-reject disabled-label">ไม่ผ่าน</label>
@@ -243,18 +269,11 @@ window.onload = function() {
     if (submitBtn) {
         submitBtn.addEventListener("click", async function() {
             
-            const accept = document.getElementById("accept");
-            if (!accept || !accept.checked) {
-                alert("⚠️ กรุณายืนยันการยอมรับเงื่อนไขก่อนส่งข้อมูล");
-                return;
-            }
-
-            // ดึงค่าข้อมูลทั่วไป
+            // 1. ดึงค่าข้อมูลทั่วไปหน้าแรก
             const inspector = document.getElementById("inspector")?.value.trim();
             const plate = document.getElementById("plate")?.value.trim();
             const station = document.getElementById("station")?.value.trim();
             
-            // ดึงค่าประเภทรถ
             const selectType = document.getElementById("vehicleType")?.value;
             const customType = document.getElementById("customVehicleType")?.value.trim();
             let vehicleType = selectType === "อื่น ๆ" ? customType : selectType;
@@ -265,12 +284,15 @@ window.onload = function() {
                 return;
             }
 
-            // ตรวจสอบรูปภาพและการเลือกสถานะเฉพาะรายการที่ active
+            // 2. ตรวจสอบว่าแนบรูปและเลือกสถานะครบทุกข้อหรือยัง
             let missingImages = [];
             let missingStatus = [];
+            let rejectedItems = []; // เก็บข้อที่ไม่ผ่าน
 
-            activeItems.forEach(item => {
+            activeItems.forEach((item, index) => {
                 const i = item.id;
+                const displayNo = index + 1; // ลำดับข้อที่แสดงบนหน้าจอ
+                
                 const cameraInput = document.getElementById(`camera${i}`);
                 const galleryInput = document.getElementById(`gallery${i}`);
                 
@@ -278,27 +300,50 @@ window.onload = function() {
                 const hasGalleryImg = galleryInput && galleryInput.files && galleryInput.files.length > 0;
                 const hasUploadedBefore = !!uploadedFileUrls[i];
 
+                // เช็คว่าแนบรูปหรือยัง
                 if (!hasCameraImg && !hasGalleryImg && !hasUploadedBefore) {
-                    missingImages.push(i);
+                    missingImages.push(displayNo);
                 }
 
+                // เช็คผลการตรวจ
                 const statusChecked = document.querySelector(`input[name="status${i}"]:checked`);
                 if (!statusChecked) {
-                    missingStatus.push(i);
+                    missingStatus.push(displayNo);
+                } else if (statusChecked.value === "ไม่ยอมรับ") {
+                    // ถ้าเลือกผลการตรวจเป็น "ไม่ผ่าน" (ไม่ยอมรับ)
+                    rejectedItems.push(displayNo);
                 }
             });
 
+            // แจ้งเตือนกรณีแนบรูปไม่ครบ
             if (missingImages.length > 0) {
-                alert(`⚠️ กรุณาเพิ่มรูปภาพให้ครบถ้วนก่อนเลือกสถานะ (ยังไม่ได้เพิ่มรูปข้อ: ${missingImages.join(", ")})`);
+                alert(`⚠️ กรุณาเพิ่มรูปภาพให้ครบถ้วนก่อนส่งข้อมูล (ยังไม่ได้เพิ่มรูปข้อ: ${missingImages.join(", ")})`);
                 return;
             }
 
+            // แจ้งเตือนกรณีเลือกสถานะไม่ครบ
             if (missingStatus.length > 0) {
                 alert(`⚠️ กรุณาเลือกระบุผลการตรวจให้ครบถ้วน (ยังไม่ได้ตรวจข้อ: ${missingStatus.join(", ")})`);
                 return;
             }
 
-            // สร้างและดาวน์โหลด PDF Certificate
+            // ⛔ 3. เพิ่มเงื่อนไข: หากมีข้อที่ไม่ผ่าน ห้ามยอมรับเงื่อนไขและส่งฟอร์ม
+            if (rejectedItems.length > 0) {
+                const acceptCheck = document.getElementById("accept");
+                if (acceptCheck) acceptCheck.checked = false; // เอาเครื่องหมายถูกออกทันที
+
+                alert(`❌ ไม่สามารถส่งข้อมูลได้ เนื่องจากมีรายการที่ไม่ผ่านการตรวจ\n\nรายการที่ไม่ผ่าน ได้แก่ ข้อ: ${rejectedItems.join(", ")}\n\n👉 กรุณาแก้ไขให้ผ่านก่อนดำเนินการต่อ`);
+                return;
+            }
+
+            // 4. ตรวจสอบการติ๊กยอมรับเงื่อนไข
+            const accept = document.getElementById("accept");
+            if (!accept || !accept.checked) {
+                alert("⚠️ กรุณายืนยันการยอมรับเงื่อนไขก่อนส่งข้อมูล");
+                return;
+            }
+
+            // 5. หากผ่านเงื่อนไขทั้งหมด ทำการสร้างและดาวน์โหลด PDF Certificate
             await generateAndDownloadPDF({
                 inspector,
                 vehicleType,
@@ -308,7 +353,6 @@ window.onload = function() {
         });
     }
 };
-
 
 // ======================================
 // 6. ฟังก์ชันสร้างและดาวน์โหลด PDF Certificate
