@@ -1,11 +1,65 @@
 // ======================================
+// 0. ระบบจัดการ IndexedDB สำหรับเก็บรูปภาพ
+// ======================================
+const DB_NAME = "InspectionAppDB";
+const STORE_NAME = "images";
+
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+        request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME);
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function saveImageToDB(id, file) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        const store = tx.objectStore(STORE_NAME);
+        store.put(file, id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+async function getImageFromDB(id) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readonly");
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.get(id);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function clearAllImageData() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        const store = tx.objectStore(STORE_NAME);
+        store.clear();
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+
+// ======================================
 // 1. แสดงวันที่และเวลา (Real-time)
 // ======================================
 
 function updateDateTime() {
     const now = new Date();
 
-    const date = now.toLocaleDateString("th-TH", { 
+    const date = now.toLocaleDateString("th-TH", {
         day: "2-digit",
         month: "2-digit",
         year: "numeric"
@@ -29,7 +83,7 @@ setInterval(updateDateTime, 1000);
 
 
 // ======================================
-// 2. จัดการประเภทรถ (แสดงช่องระบุเพิ่มถ้าเลือก "อื่น ๆ")
+// 2. จัดการประเภทรถ
 // ======================================
 
 function toggleCustomVehicleType(selectEl) {
@@ -43,6 +97,7 @@ function toggleCustomVehicleType(selectEl) {
         customInput.style.display = "none";
         customInput.value = "";
     }
+    saveFormData(); // บันทึกสถานะการเลือกประเภทรถ
 }
 
 
@@ -53,17 +108,14 @@ function toggleCustomVehicleType(selectEl) {
 let activeItems = []; // เก็บรายการตรวจของประเภทรถที่กำลังเลือกอยู่
 
 function goToInspectionStep() {
-    // 🔒 ตรวจสอบการกรอกข้อมูลใน Step 1 ให้ครบถ้วนก่อนถัดไป
     const inspector = document.getElementById("inspector")?.value.trim();
     const plate = document.getElementById("plate")?.value.trim();
     const station = document.getElementById("station")?.value.trim();
     const selectType = document.getElementById("vehicleType")?.value;
     const customType = document.getElementById("customVehicleType")?.value.trim();
 
-    // เช็คว่าประเภทรถเลือก "อื่น ๆ" แล้วพิมพ์ระบุไว้หรือไม่
     const vehicleType = selectType === "อื่น ๆ" ? customType : selectType;
 
-    // เก็บรายการช่องที่ยังไม่ได้กรอกเพื่อแจ้งเตือน
     let missingFields = [];
     if (!inspector) missingFields.push("ชื่อผู้ตรวจ");
     if (!selectType) missingFields.push("ประเภทรถ");
@@ -73,16 +125,15 @@ function goToInspectionStep() {
 
     if (missingFields.length > 0) {
         alert(`⚠️ กรุณากรอกข้อมูลหน้าแรกให้ครบถ้วนก่อนกดถัดไป:\n- ${missingFields.join("\n- ")}`);
-        return; // หยุดการทำงาน ไม่ให้ไป Step 2
+        return;
     }
 
-    // Render รายการตรวจตามประเภทรถ
     renderInspectionItems(vehicleType);
 
-    // เปลี่ยนหน้าไป Step 2
     document.getElementById("step1")?.classList.remove("active");
     document.getElementById("step2")?.classList.add("active");
 
+    saveFormData(); // บันทึกตำแหน่ง Step ปัจจุบัน
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -90,6 +141,7 @@ function prevStep() {
     document.getElementById("step2")?.classList.remove("active");
     document.getElementById("step1")?.classList.add("active");
 
+    saveFormData(); // บันทึกตำแหน่ง Step ปัจจุบัน
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -98,9 +150,8 @@ function renderInspectionItems(vehicleType) {
     const titleElement = document.getElementById("inspectionTitle");
     if (!container) return;
 
-    container.innerHTML = ""; // ล้างข้อมูลเก่า
+    container.innerHTML = ""; 
 
-    // กำหนดรายการตรวจ (IDs) และชื่อส่วนตามประเภทรถ (ตัดคำว่า "ชุดที่ X" ออกแล้ว)
     let targetIds = [];
     let groupTitle = "";
 
@@ -108,7 +159,7 @@ function renderInspectionItems(vehicleType) {
         targetIds = [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12];
         groupTitle = `📋 รายการตรวจ (${vehicleType})`;
     } else if (vehicleType === "รถพ่วง") {
-        targetIds = [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        targetIds = [1, 2, 5, 4, 6, 7, 8, 9, 10, 11, 12];
         groupTitle = `📋 รายการตรวจ (${vehicleType})`;
     } else if (vehicleType === "รถสิบล้อ") {
         targetIds = [1, 4, 5, 6, 7, 8, 9, 10, 11, 12];
@@ -117,22 +168,19 @@ function renderInspectionItems(vehicleType) {
         targetIds = [1, 4, 5, 8, 9, 10, 11, 12];
         groupTitle = `📋 รายการตรวจ (${vehicleType})`;
     } else {
-        // สำหรับ รถอีแต๋น และ อื่น ๆ
         targetIds = [1, 4, 8, 11, 12];
         groupTitle = `📋 รายการตรวจ (${vehicleType})`;
     }
 
-    // กรองเอาเฉพาะไอเทมที่มี id ตรงกับที่กำหนด
     activeItems = allItems.filter(item => targetIds.includes(Number(item.id)));
 
     if (titleElement) {
         titleElement.innerText = groupTitle;
     }
 
-    // สร้าง HTML สำหรับแต่ละรายการ
     activeItems.forEach((item, index) => {
-        const no = item.id;          // id ดั้งเดิมสำหรับใช้ผูก ID ของ HTML elements และรูปภาพ
-        const displayNo = index + 1; // ลำดับที่ใช้แสดงผลจริงบนหน้าจอ (เรียง 1, 2, 3, ...)
+        const no = item.id;
+        const displayNo = index + 1;
 
         let detailsHtml = "";
         if (item.details && item.details.length > 0) {
@@ -173,19 +221,18 @@ function renderInspectionItems(vehicleType) {
                 </div>
 
                 <div class="status-buttons">
-                    <input type="radio" id="accept${no}" name="status${no}" value="ยอมรับ" class="status-btn-check" disabled>
+                    <input type="radio" id="accept${no}" name="status${no}" value="ยอมรับ" class="status-btn-check" onchange="saveFormData()" disabled>
                     <label for="accept${no}" class="btn-status btn-accept disabled-label">ผ่าน</label>
 
-                    <input type="radio" id="reject${no}" name="status${no}" value="ไม่ยอมรับ" class="status-btn-check" disabled>
+                    <input type="radio" id="reject${no}" name="status${no}" value="ไม่ยอมรับ" class="status-btn-check" onchange="saveFormData()" disabled>
                     <label for="reject${no}" class="btn-status btn-reject disabled-label">ไม่ผ่าน</label>
                 </div>
             </div>`;
 
         container.insertAdjacentHTML("beforeend", cardHtml);
 
-        // คืนค่าที่เคยเลือกไว้เดิม (ถ้ามี)
         if (uploadedFileUrls[no]) {
-            restoreUploadedImageUI(no);
+            restoreUploadedImageUI(no, uploadedFileNames[no] || "ไฟล์รูปภาพแล้ว");
             unlockStatusButtons(no);
         }
     });
@@ -197,8 +244,9 @@ function renderInspectionItems(vehicleType) {
 // ======================================
 
 const uploadedFileUrls = {};
+const uploadedFileNames = {};
 
-function handleImageUpload(input, number) {
+async function handleImageUpload(input, number) {
     const file = input.files[0];
     if (!file) return;
 
@@ -207,9 +255,14 @@ function handleImageUpload(input, number) {
     }
     const fileUrl = URL.createObjectURL(file);
     uploadedFileUrls[number] = fileUrl;
+    uploadedFileNames[number] = file.name;
+
+    // บันทึกไฟล์ลงใน IndexedDB
+    await saveImageToDB(number, file);
 
     restoreUploadedImageUI(number, file.name);
     unlockStatusButtons(number);
+    saveFormData();
 }
 
 function restoreUploadedImageUI(number, fileName = "ไฟล์รูปภาพแล้ว") {
@@ -260,16 +313,101 @@ function closeImageModal() {
 
 
 // ======================================
-// 5. การตรวจสอบข้อมูลและการส่งฟอร์ม + สร้าง PDF Certificate
+// 5. การบันทึกและโหลดข้อมูลจาก LocalStorage/IndexedDB
 // ======================================
 
-window.onload = function() {
+function saveFormData() {
+    const formData = {
+        inspector: document.getElementById("inspector")?.value || "",
+        vehicleType: document.getElementById("vehicleType")?.value || "",
+        customVehicleType: document.getElementById("customVehicleType")?.value || "",
+        plate: document.getElementById("plate")?.value || "",
+        station: document.getElementById("station")?.value || "",
+        acceptChecked: document.getElementById("accept")?.checked || false,
+        isStep2Active: document.getElementById("step2")?.classList.contains("active") || false,
+        fileNames: uploadedFileNames,
+        statuses: {}
+    };
+
+    // เก็บค่า Radio button ของแต่ละข้อ
+    activeItems.forEach(item => {
+        const checkedRadio = document.querySelector(`input[name="status${item.id}"]:checked`);
+        if (checkedRadio) {
+            formData.statuses[item.id] = checkedRadio.value;
+        }
+    });
+
+    localStorage.setItem("inspectionFormData", JSON.stringify(formData));
+}
+
+async function restoreFormData() {
+    const savedData = localStorage.getItem("inspectionFormData");
+    if (!savedData) return;
+
+    const formData = JSON.parse(savedData);
+
+    // คืนค่าข้อมูล Step 1
+    if (document.getElementById("inspector")) document.getElementById("inspector").value = formData.inspector || "";
+    if (document.getElementById("vehicleType")) {
+        document.getElementById("vehicleType").value = formData.vehicleType || "";
+        toggleCustomVehicleType(document.getElementById("vehicleType"));
+    }
+    if (document.getElementById("customVehicleType")) document.getElementById("customVehicleType").value = formData.customVehicleType || "";
+    if (document.getElementById("plate")) document.getElementById("plate").value = formData.plate || "";
+    if (document.getElementById("station")) document.getElementById("station").value = formData.station || "";
+    if (document.getElementById("accept")) document.getElementById("accept").checked = formData.acceptChecked || false;
+
+    // คืนค่ารูปภาพจาก IndexedDB
+    const fileNames = formData.fileNames || {};
+    for (const id in fileNames) {
+        const fileBlob = await getImageFromDB(Number(id));
+        if (fileBlob) {
+            uploadedFileUrls[id] = URL.createObjectURL(fileBlob);
+            uploadedFileNames[id] = fileNames[id];
+        }
+    }
+
+    // หากก่อนหน้านี้อยู่ใน Step 2 ให้เปิด Step 2 ต่อเลย
+    if (formData.isStep2Active) {
+        const vehicleType = formData.vehicleType === "อื่น ๆ" ? formData.customVehicleType : formData.vehicleType;
+        if (vehicleType) {
+            renderInspectionItems(vehicleType);
+            document.getElementById("step1")?.classList.remove("active");
+            document.getElementById("step2")?.classList.add("active");
+
+            // คืนค่าการเลือกตัวเลือก ผ่าน / ไม่ผ่าน
+            if (formData.statuses) {
+                Object.keys(formData.statuses).forEach(id => {
+                    const val = formData.statuses[id];
+                    const radio = document.querySelector(`input[name="status${id}"][value="${val}"]`);
+                    if (radio) radio.checked = true;
+                });
+            }
+        }
+    }
+}
+
+// ผูกอีเวนต์ Auto-save เมื่อผู้ใช้พิมพ์ข้อมูล
+function attachAutoSaveListeners() {
+    const inputs = ["inspector", "plate", "station", "vehicleType", "customVehicleType", "accept"];
+    inputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener("input", saveFormData);
+            el.addEventListener("change", saveFormData);
+        }
+    });
+}
+
+window.onload = async function() {
+    attachAutoSaveListeners();
+    await restoreFormData(); // ดึงข้อมูลเก่าคืนมาเมื่อเปิดหน้าเว็บ/รีเฟรช
+
     const submitBtn = document.getElementById("submitBtn");
 
     if (submitBtn) {
         submitBtn.addEventListener("click", async function() {
             
-            // 1. ดึงค่าข้อมูลทั่วไปหน้าแรก
             const inspector = document.getElementById("inspector")?.value.trim();
             const plate = document.getElementById("plate")?.value.trim();
             const station = document.getElementById("station")?.value.trim();
@@ -284,14 +422,13 @@ window.onload = function() {
                 return;
             }
 
-            // 2. ตรวจสอบว่าแนบรูปและเลือกสถานะครบทุกข้อหรือยัง
             let missingImages = [];
             let missingStatus = [];
-            let rejectedItems = []; // เก็บข้อที่ไม่ผ่าน
+            let rejectedItems = [];
 
             activeItems.forEach((item, index) => {
                 const i = item.id;
-                const displayNo = index + 1; // ลำดับข้อที่แสดงบนหน้าจอ
+                const displayNo = index + 1;
                 
                 const cameraInput = document.getElementById(`camera${i}`);
                 const galleryInput = document.getElementById(`gallery${i}`);
@@ -300,59 +437,57 @@ window.onload = function() {
                 const hasGalleryImg = galleryInput && galleryInput.files && galleryInput.files.length > 0;
                 const hasUploadedBefore = !!uploadedFileUrls[i];
 
-                // เช็คว่าแนบรูปหรือยัง
                 if (!hasCameraImg && !hasGalleryImg && !hasUploadedBefore) {
                     missingImages.push(displayNo);
                 }
 
-                // เช็คผลการตรวจ
                 const statusChecked = document.querySelector(`input[name="status${i}"]:checked`);
                 if (!statusChecked) {
                     missingStatus.push(displayNo);
                 } else if (statusChecked.value === "ไม่ยอมรับ") {
-                    // ถ้าเลือกผลการตรวจเป็น "ไม่ผ่าน" (ไม่ยอมรับ)
                     rejectedItems.push(displayNo);
                 }
             });
 
-            // แจ้งเตือนกรณีแนบรูปไม่ครบ
             if (missingImages.length > 0) {
                 alert(`⚠️ กรุณาเพิ่มรูปภาพให้ครบถ้วนก่อนส่งข้อมูล (ยังไม่ได้เพิ่มรูปข้อ: ${missingImages.join(", ")})`);
                 return;
             }
 
-            // แจ้งเตือนกรณีเลือกสถานะไม่ครบ
             if (missingStatus.length > 0) {
                 alert(`⚠️ กรุณาเลือกระบุผลการตรวจให้ครบถ้วน (ยังไม่ได้ตรวจข้อ: ${missingStatus.join(", ")})`);
                 return;
             }
 
-            // ⛔ 3. เพิ่มเงื่อนไข: หากมีข้อที่ไม่ผ่าน ห้ามยอมรับเงื่อนไขและส่งฟอร์ม
             if (rejectedItems.length > 0) {
                 const acceptCheck = document.getElementById("accept");
-                if (acceptCheck) acceptCheck.checked = false; // เอาเครื่องหมายถูกออกทันที
+                if (acceptCheck) acceptCheck.checked = false;
+                saveFormData();
 
                 alert(`❌ ไม่สามารถส่งข้อมูลได้ เนื่องจากมีรายการที่ไม่ผ่านการตรวจ\n\nรายการที่ไม่ผ่าน ได้แก่ ข้อ: ${rejectedItems.join(", ")}\n\n👉 กรุณาแก้ไขให้ผ่านก่อนดำเนินการต่อ`);
                 return;
             }
 
-            // 4. ตรวจสอบการติ๊กยอมรับเงื่อนไข
             const accept = document.getElementById("accept");
             if (!accept || !accept.checked) {
                 alert("⚠️ กรุณายืนยันการยอมรับเงื่อนไขก่อนส่งข้อมูล");
                 return;
             }
 
-            // 5. หากผ่านเงื่อนไขทั้งหมด ทำการสร้างและดาวน์โหลด PDF Certificate
             await generateAndDownloadPDF({
                 inspector,
                 vehicleType,
                 plate,
                 station
             });
+
+            // ล้างข้อมูลความจำทั้งหมดหลังจากส่งฟอร์มสำเร็จเรียบร้อย
+            localStorage.removeItem("inspectionFormData");
+            await clearAllImageData();
         });
     }
 };
+
 
 // ======================================
 // 6. ฟังก์ชันสร้างและดาวน์โหลด PDF Certificate
@@ -364,7 +499,6 @@ async function generateAndDownloadPDF(formData) {
     const dateStr = document.getElementById("currentDate")?.innerText || "-";
     const timeStr = document.getElementById("currentTime")?.innerText || "-";
 
-    // ใส่ข้อมูลลงใน Certificate
     if (document.getElementById("pdf-inspector")) document.getElementById("pdf-inspector").innerText = formData.inspector;
     if (document.getElementById("pdf-vehicle-type")) document.getElementById("pdf-vehicle-type").innerText = formData.vehicleType;
     if (document.getElementById("pdf-plate")) document.getElementById("pdf-plate").innerText = formData.plate;
@@ -373,7 +507,6 @@ async function generateAndDownloadPDF(formData) {
     if (document.getElementById("pdf-time")) document.getElementById("pdf-time").innerText = timeStr;
     if (document.getElementById("pdf-scope-plate")) document.getElementById("pdf-scope-plate").innerText = formData.plate;
 
-    // ใส่รูปถ่ายใน Scope Of Inspection (ดึงเฉพาะรูปของ activeItems)
     const galleryContainer = document.getElementById("pdf-gallery");
     const imageLoadPromises = [];
 
