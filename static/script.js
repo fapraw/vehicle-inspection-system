@@ -5,7 +5,7 @@
 function updateDateTime() {
     const now = new Date();
 
-    const date = now.toLocaleDateString("th-TH", {
+    const date = now.toLocaleDateString("th-TH", { 
         day: "2-digit",
         month: "2-digit",
         year: "numeric"
@@ -108,17 +108,17 @@ function renderInspectionItems(vehicleType) {
         targetIds = [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12];
         groupTitle = `📋 รายการตรวจ (${vehicleType})`;
     } else if (vehicleType === "รถพ่วง") {
-        targetIds = [1, 2, 5, 6, 7, 8, 9, 10, 11, 12];
+        targetIds = [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12];
         groupTitle = `📋 รายการตรวจ (${vehicleType})`;
     } else if (vehicleType === "รถสิบล้อ") {
-        targetIds = [1, 5, 6, 7, 8, 9, 10, 11, 12];
+        targetIds = [1, 4, 5, 6, 7, 8, 9, 10, 11, 12];
         groupTitle = `📋 รายการตรวจ (${vehicleType})`;
     } else if (vehicleType === "รถหกล้อ") {
-        targetIds = [1, 5, 8, 9, 11, 12];
+        targetIds = [1, 4, 5, 8, 9, 10, 11, 12];
         groupTitle = `📋 รายการตรวจ (${vehicleType})`;
     } else {
         // สำหรับ รถอีแต๋น และ อื่น ๆ
-        targetIds = [1, 8, 11, 12];
+        targetIds = [1, 4, 8, 11, 12];
         groupTitle = `📋 รายการตรวจ (${vehicleType})`;
     }
 
