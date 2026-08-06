@@ -716,5 +716,54 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
+/**
+ * ย่อขนาดและบีบอัดรูปภาพด้วย HTML5 Canvas
+ * @param {File|Blob} file - ไฟล์รูปภาพต้นฉบับ
+ * @param {number} maxWidth - ความกว้างสูงสุด (แนะนำ 1024px)
+ * @param {number} quality - คุณภาพของรูปภาพ 0.0 - 1.0 (แนะนำ 0.6 - 0.7)
+ * @returns {Promise<string>} - คืนค่าเป็น Base64 String ที่ย่อขนาดแล้ว
+ */
+function compressImage(file, maxWidth = 1024, quality = 0.6) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+
+                // คำนวณสัดส่วนรูปเพื่อไม่ให้ภาพเบี้ยว
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+
+                // วาดรูปลงบน Canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // แปลงเป็น Base64 JPEG พร้อมปรับความละเอียด/คุณภาพ
+                const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+                
+                // ตัด prefix "data:image/jpeg;base64," ออก (ถ้าต้องการเฉพาะตัวข้อมูล)
+                const pureBase64 = compressedBase64.split(',')[1];
+                resolve(pureBase64);
+            };
+
+            img.onerror = (error) => reject(error);
+        };
+        
+        reader.onerror = (error) => reject(error);
+    });
+}
+
 
 
