@@ -51,11 +51,9 @@ async function clearAllImageData() {
     });
 }
 
-
 // ======================================
 // 1. แสดงวันที่และเวลา (Real-time)
 // ======================================
-
 function updateDateTime() {
     const now = new Date();
 
@@ -81,11 +79,9 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 1000);
 
-
 // ======================================
 // 2. จัดการประเภทรถ
 // ======================================
-
 function toggleCustomVehicleType(selectEl) {
     const customInput = document.getElementById("customVehicleType");
     if (!customInput) return;
@@ -97,15 +93,15 @@ function toggleCustomVehicleType(selectEl) {
         customInput.style.display = "none";
         customInput.value = "";
     }
-    saveFormData(); // บันทึกสถานะการเลือกประเภทรถ
+    saveFormData();
 }
-
 
 // ======================================
 // 3. Multi Step Form & Dynamic Render
 // ======================================
-
-let activeItems = []; // เก็บรายการตรวจของประเภทรถที่กำลังเลือกอยู่
+let activeItems = [];
+const uploadedFileUrls = {};
+const uploadedFileNames = {};
 
 function goToInspectionStep() {
     const inspector = document.getElementById("inspector")?.value.trim();
@@ -133,7 +129,7 @@ function goToInspectionStep() {
     document.getElementById("step1")?.classList.remove("active");
     document.getElementById("step2")?.classList.add("active");
 
-    saveFormData(); // บันทึกตำแหน่ง Step ปัจจุบัน
+    saveFormData();
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -141,7 +137,7 @@ function prevStep() {
     document.getElementById("step2")?.classList.remove("active");
     document.getElementById("step1")?.classList.add("active");
 
-    saveFormData(); // บันทึกตำแหน่ง Step ปัจจุบัน
+    saveFormData();
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -156,7 +152,7 @@ function renderInspectionItems(vehicleType) {
     let groupTitle = "";
 
     if (vehicleType === "รถเทเลอร์" || vehicleType === "เทเลอร์") {
-        targetIds = [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12];
+        targetIds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
         groupTitle = `📋 รายการตรวจ (${vehicleType})`;
     } else if (vehicleType === "รถพ่วง") {
         targetIds = [1, 2, 5, 4, 6, 7, 8, 9, 10, 11, 12];
@@ -172,7 +168,12 @@ function renderInspectionItems(vehicleType) {
         groupTitle = `📋 รายการตรวจ (${vehicleType})`;
     }
 
-    activeItems = allItems.filter(item => targetIds.includes(Number(item.id)));
+    // สมมติว่ามีตัวแปร allItems อยู่ในระบบภายนอก
+    if (typeof allItems !== "undefined") {
+        activeItems = allItems.filter(item => targetIds.includes(Number(item.id)));
+    } else {
+        activeItems = targetIds.map(id => ({ id: id, title: `รายการตรวจที่ ${id}`, details: [], warnings: [] }));
+    }
 
     if (titleElement) {
         titleElement.innerText = groupTitle;
@@ -238,14 +239,9 @@ function renderInspectionItems(vehicleType) {
     });
 }
 
-
 // ======================================
 // 4. จัดการรูปภาพและการปลดล็อคปุ่มสถานะ
 // ======================================
-
-const uploadedFileUrls = {};
-const uploadedFileNames = {};
-
 async function handleImageUpload(input, number) {
     const file = input.files[0];
     if (!file) return;
@@ -257,7 +253,6 @@ async function handleImageUpload(input, number) {
     uploadedFileUrls[number] = fileUrl;
     uploadedFileNames[number] = file.name;
 
-    // บันทึกไฟล์ลงใน IndexedDB
     await saveImageToDB(number, file);
 
     restoreUploadedImageUI(number, file.name);
@@ -311,11 +306,9 @@ function closeImageModal() {
     }
 }
 
-
 // ======================================
 // 5. การบันทึกและโหลดข้อมูลจาก LocalStorage/IndexedDB
 // ======================================
-
 function saveFormData() {
     const formData = {
         inspector: document.getElementById("inspector")?.value || "",
@@ -329,7 +322,6 @@ function saveFormData() {
         statuses: {}
     };
 
-    // เก็บค่า Radio button ของแต่ละข้อ
     activeItems.forEach(item => {
         const checkedRadio = document.querySelector(`input[name="status${item.id}"]:checked`);
         if (checkedRadio) {
@@ -346,7 +338,6 @@ async function restoreFormData() {
 
     const formData = JSON.parse(savedData);
 
-    // คืนค่าข้อมูล Step 1
     if (document.getElementById("inspector")) document.getElementById("inspector").value = formData.inspector || "";
     if (document.getElementById("vehicleType")) {
         document.getElementById("vehicleType").value = formData.vehicleType || "";
@@ -357,7 +348,6 @@ async function restoreFormData() {
     if (document.getElementById("station")) document.getElementById("station").value = formData.station || "";
     if (document.getElementById("accept")) document.getElementById("accept").checked = formData.acceptChecked || false;
 
-    // คืนค่ารูปภาพจาก IndexedDB
     const fileNames = formData.fileNames || {};
     for (const id in fileNames) {
         const fileBlob = await getImageFromDB(Number(id));
@@ -367,7 +357,6 @@ async function restoreFormData() {
         }
     }
 
-    // หากก่อนหน้านี้อยู่ใน Step 2 ให้เปิด Step 2 ต่อเลย
     if (formData.isStep2Active) {
         const vehicleType = formData.vehicleType === "อื่น ๆ" ? formData.customVehicleType : formData.vehicleType;
         if (vehicleType) {
@@ -375,7 +364,6 @@ async function restoreFormData() {
             document.getElementById("step1")?.classList.remove("active");
             document.getElementById("step2")?.classList.add("active");
 
-            // คืนค่าการเลือกตัวเลือก ผ่าน / ไม่ผ่าน
             if (formData.statuses) {
                 Object.keys(formData.statuses).forEach(id => {
                     const val = formData.statuses[id];
@@ -387,7 +375,6 @@ async function restoreFormData() {
     }
 }
 
-// ผูกอีเวนต์ Auto-save เมื่อผู้ใช้พิมพ์ข้อมูล
 function attachAutoSaveListeners() {
     const inputs = ["inspector", "plate", "station", "vehicleType", "customVehicleType", "accept"];
     inputs.forEach(id => {
@@ -399,9 +386,230 @@ function attachAutoSaveListeners() {
     });
 }
 
+// ======================================
+// 6. Helper & API Integration (ส่งข้อมูล GAS)
+// ======================================
+// ฟังก์ชันย่อขนาดรูปภาพก่อนส่งเข้า Google Apps Script เพื่อไม่ให้ติด Timeout
+function compressAndConvertToBase64(blob, maxWidth = 1000, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = URL.createObjectURL(blob);
+        img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxWidth) {
+                height = Math.round((height * maxWidth) / width);
+                width = maxWidth;
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const dataUrl = canvas.toDataURL("image/jpeg", quality);
+            URL.revokeObjectURL(img.src);
+            resolve(dataUrl.split(",")[1]);
+        };
+        img.onerror = (err) => reject(err);
+    });
+}
+
+// แปลง PDF Blob เป็น Base64 ปกติ
+function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64String = reader.result.split(',')[1];
+            resolve(base64String);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
+
+// ฟังก์ชันส่งข้อมูลเข้า Google Apps Script
+async function sendDataToGoogleAppsScript(formData, pdfBlob) {
+    // ⚠️ ตรวจสอบว่าใช้ Web App URL ล่าสุดจากการ Deploy ใหม่แล้ว
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyJTJz4wJJ8sE9EhCKIuj6q64s89pCC6HnNBN4eTraED93nNqUSE8wE4pPGiN6n-bUD/exec";
+
+    try {
+        const dateClean = (document.getElementById("currentDate")?.innerText || "").replace(/\//g, '-');
+        const plateClean = formData.plate.replace(/\s+/g, '_');
+
+        const inspectionImages = [];
+        for (const item of activeItems) {
+            const i = item.id;
+            const fileBlob = await getImageFromDB(Number(i));
+            if (fileBlob) {
+                // ย่อขนาดรูปภาพก่อนแปลงเป็น Base64
+                const base64Data = await compressAndConvertToBase64(fileBlob);
+                const originalFileName = uploadedFileNames[i] || `item_${i}.jpg`;
+                const fileExt = originalFileName.substring(originalFileName.lastIndexOf('.'));
+                const formattedFileName = `item_${i}_${plateClean}_${dateClean}${fileExt}`;
+
+                inspectionImages.push({
+                    itemId: i,
+                    fileName: formattedFileName,
+                    base64: base64Data,
+                    status: document.querySelector(`input[name="status${i}"]:checked`)?.value || "-"
+                });
+            }
+        }
+
+        const pdfBase64 = pdfBlob ? await blobToBase64(pdfBlob) : "";
+
+        const payload = {
+            inspector: formData.inspector,
+            vehicleType: formData.vehicleType,
+            plate: formData.plate,
+            station: formData.station,
+            inspectionDate: document.getElementById("currentDate")?.innerText || "-",
+            inspectionTime: document.getElementById("currentTime")?.innerText || "-",
+            pdfFileName: `Certificate_${plateClean}_${dateClean}.pdf`,
+            pdfBase64: pdfBase64,
+            images: inspectionImages
+        };
+
+        // ส่งแบบ no-cors เพื่อข้ามปัญหาเรื่อง CORS Policy ของเบราว์เซอร์
+        await fetch(GAS_WEB_APP_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { 
+                "Content-Type": "text/plain;charset=utf-8" 
+            },
+            body: JSON.stringify(payload)
+        });
+
+        console.log("✅ ส่ง Request ไปยัง Google Apps Script เรียบร้อยแล้ว");
+
+    } catch (error) {
+        console.error("❌ เกิดข้อผิดพลาดขณะส่งข้อมูลไป Google Apps Script:", error);
+        throw error;
+    }
+}
+
+async function generateAndDownloadPDF(formData) {
+    const submitBtn = document.getElementById("submitBtn");
+
+    const dateStr = document.getElementById("currentDate")?.innerText || "-";
+    const timeStr = document.getElementById("currentTime")?.innerText || "-";
+
+    if (document.getElementById("pdf-inspector")) document.getElementById("pdf-inspector").innerText = formData.inspector;
+    if (document.getElementById("pdf-vehicle-type")) document.getElementById("pdf-vehicle-type").innerText = formData.vehicleType;
+    if (document.getElementById("pdf-plate")) document.getElementById("pdf-plate").innerText = formData.plate;
+    if (document.getElementById("pdf-station")) document.getElementById("pdf-station").innerText = formData.station;
+    if (document.getElementById("pdf-date")) document.getElementById("pdf-date").innerText = dateStr;
+    if (document.getElementById("pdf-time")) document.getElementById("pdf-time").innerText = timeStr;
+    if (document.getElementById("pdf-scope-plate")) document.getElementById("pdf-scope-plate").innerText = formData.plate;
+
+    const galleryContainer = document.getElementById("pdf-gallery");
+    const imageLoadPromises = [];
+
+    if (galleryContainer) {
+        galleryContainer.innerHTML = "";
+
+        activeItems.forEach(item => {
+            const i = item.id;
+            if (uploadedFileUrls[i]) {
+                const imgElement = document.createElement("img");
+                imgElement.className = "cert-img-thumb";
+                
+                const imgPromise = new Promise((resolve) => {
+                    imgElement.onload = () => resolve();
+                    imgElement.onerror = () => resolve();
+                });
+                imageLoadPromises.push(imgPromise);
+
+                imgElement.src = uploadedFileUrls[i];
+                galleryContainer.appendChild(imgElement);
+            }
+        });
+    }
+
+    await Promise.all(imageLoadPromises);
+
+    const pdfWrapper = document.getElementById("pdf-wrapper");
+    const element = document.getElementById("pdf-template");
+
+    if (pdfWrapper) {
+        pdfWrapper.style.position = "fixed";
+        pdfWrapper.style.top = "0";
+        pdfWrapper.style.left = "0";
+        pdfWrapper.style.zIndex = "-9999";
+        pdfWrapper.style.opacity = "1";
+    }
+
+    const dateClean = dateStr.replace(/\//g, '-');
+    const opt = {
+        margin:       0,
+        filename:     `Certificate_${formData.plate}_${dateClean}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { 
+            scale: 2, 
+            useCORS: true, 
+            logging: false,
+            scrollX: 0,
+            scrollY: 0
+            // ลบ width และ height ออก เพื่อให้ html2canvas คำนวณขนาดตาม Element จริงอัตโนมัติ
+        },
+        jsPDF:        { unit: 'pt', format: 'a4', orientation: 'portrait' },
+        // เพิ่มตัวเลือกสั่งห้ามแบ่งหน้าอัตโนมัติ
+        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    try {
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = "⏳ กำลังส่งข้อมูล และสร้าง PDF...";
+        }
+
+        // ข้อแนะนำเพิ่มเติม: เพื่อไม่ให้ระบบต้อง Render HTML เป็น Canvas ซ้ำ 2 รอบ
+        // สามารถดึง worker ของ html2pdf มาใช้งานร่วมกันได้ครับ
+        const worker = html2pdf().set(opt).from(element);
+
+        // 1. สร้าง Blob ของ PDF
+        const pdfBlob = await worker.output('blob');
+
+        // 2. ดาวน์โหลด PDF ลงเครื่อง
+        await worker.save();
+
+        // 3. ส่งข้อมูลเข้า Google Sheet / Google Drive
+        await sendDataToGoogleAppsScript(formData, pdfBlob);
+
+        alert("✅ ตรวจสอบ ส่งข้อมูลเข้า Google Drive และดาวน์โหลดใบ Certificate เรียบร้อยแล้ว!");
+
+        // 4. ล้างข้อมูลหลังส่งสำเร็จ
+        localStorage.removeItem("inspectionFormData");
+        await clearAllImageData();
+        location.reload(); // รีโหลดเพื่อเริ่มต้นฟอร์มใหม่
+
+    } catch (error) {
+        console.error("PDF & Data Submission Error:", error);
+        alert("⚠️ ดาวน์โหลด PDF สำเร็จ แต่เกิดข้อผิดพลาดในการส่งข้อมูลเข้า Google Sheet/Drive");
+    } finally {
+        if (pdfWrapper) {
+            pdfWrapper.style.position = "absolute";
+            pdfWrapper.style.left = "-9999px";
+            pdfWrapper.style.top = "-9999px";
+        }
+
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerText = "✅ ยืนยันการส่ง";
+        }
+    }
+}
+
+// ======================================
+// 7. Event Handler หลักเมื่อกดปุ่มส่งข้อมูล
+// ======================================
 window.onload = async function() {
     attachAutoSaveListeners();
-    await restoreFormData(); // ดึงข้อมูลเก่าคืนมาเมื่อเปิดหน้าเว็บ/รีเฟรช
+    await restoreFormData();
 
     const submitBtn = document.getElementById("submitBtn");
 
@@ -480,108 +688,33 @@ window.onload = async function() {
                 plate,
                 station
             });
-
-            // ล้างข้อมูลความจำทั้งหมดหลังจากส่งฟอร์มสำเร็จเรียบร้อย
-            localStorage.removeItem("inspectionFormData");
-            await clearAllImageData();
         });
     }
 };
+document.addEventListener("DOMContentLoaded", function () {
+    const termsContainer = document.querySelector(".terms-container");
+    const acceptCheckbox = document.getElementById("accept");
+    const acceptLabel = document.getElementById("acceptLabel");
 
+    if (termsContainer && acceptCheckbox) {
+        termsContainer.addEventListener("scroll", function () {
+            // คำนวณว่าเลื่อนถึงล่างสุดแล้วหรือยัง (เผื่อระยะไว้เล็กน้อย 5px)
+            const isScrolledToBottom = termsContainer.scrollHeight - termsContainer.scrollTop <= termsContainer.clientHeight + 5;
 
-// ======================================
-// 6. ฟังก์ชันสร้างและดาวน์โหลด PDF Certificate
-// ======================================
-
-async function generateAndDownloadPDF(formData) {
-    const submitBtn = document.getElementById("submitBtn");
-
-    const dateStr = document.getElementById("currentDate")?.innerText || "-";
-    const timeStr = document.getElementById("currentTime")?.innerText || "-";
-
-    if (document.getElementById("pdf-inspector")) document.getElementById("pdf-inspector").innerText = formData.inspector;
-    if (document.getElementById("pdf-vehicle-type")) document.getElementById("pdf-vehicle-type").innerText = formData.vehicleType;
-    if (document.getElementById("pdf-plate")) document.getElementById("pdf-plate").innerText = formData.plate;
-    if (document.getElementById("pdf-station")) document.getElementById("pdf-station").innerText = formData.station;
-    if (document.getElementById("pdf-date")) document.getElementById("pdf-date").innerText = dateStr;
-    if (document.getElementById("pdf-time")) document.getElementById("pdf-time").innerText = timeStr;
-    if (document.getElementById("pdf-scope-plate")) document.getElementById("pdf-scope-plate").innerText = formData.plate;
-
-    const galleryContainer = document.getElementById("pdf-gallery");
-    const imageLoadPromises = [];
-
-    if (galleryContainer) {
-        galleryContainer.innerHTML = "";
-
-        activeItems.forEach(item => {
-            const i = item.id;
-            if (uploadedFileUrls[i]) {
-                const imgElement = document.createElement("img");
-                imgElement.className = "cert-img-thumb";
+            if (isScrolledToBottom) {
+                // เปิดให้สามารถกดติ๊กได้
+                acceptCheckbox.disabled = false;
+                acceptCheckbox.style.cursor = "pointer";
                 
-                const imgPromise = new Promise((resolve) => {
-                    imgElement.onload = () => resolve();
-                    imgElement.onerror = () => resolve();
-                });
-                imageLoadPromises.push(imgPromise);
-
-                imgElement.src = uploadedFileUrls[i];
-                galleryContainer.appendChild(imgElement);
+                if (acceptLabel) {
+                    acceptLabel.style.cursor = "pointer";
+                    acceptLabel.style.color = "#333";
+                    acceptLabel.textContent = "ข้าพเจ้าได้อ่าน เข้าใจ และยินยอมรับเงื่อนไขข้อตกลงทั้งหมดข้างต้น";
+                }
             }
         });
     }
+});
 
-    await Promise.all(imageLoadPromises);
 
-    const pdfWrapper = document.getElementById("pdf-wrapper");
-    const element = document.getElementById("pdf-template");
 
-    if (pdfWrapper) {
-        pdfWrapper.style.position = "fixed";
-        pdfWrapper.style.top = "0";
-        pdfWrapper.style.left = "0";
-        pdfWrapper.style.zIndex = "-9999";
-        pdfWrapper.style.opacity = "1";
-    }
-
-    const opt = {
-        margin:       0,
-        filename:     `Certificate_${formData.plate}_${dateStr.replace(/\//g, '-')}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { 
-            scale: 2, 
-            useCORS: true, 
-            logging: false,
-            width: 793,
-            height: 1122,
-            scrollX: 0,
-            scrollY: 0
-        },
-        jsPDF:        { unit: 'pt', format: 'a4', orientation: 'portrait' }
-    };
-
-    try {
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerText = "⏳ กำลังสร้างใบ Certificate...";
-        }
-
-        await html2pdf().set(opt).from(element).save();
-
-        alert("✅ ตรวจสอบ ส่งข้อมูล และดาวน์โหลดใบ Certificate เรียบร้อยแล้ว!");
-    } catch (error) {
-        console.error("PDF Generation Error:", error);
-        alert("❌ เกิดข้อผิดพลาดในการดาวน์โหลด PDF กรุณาลองใหม่อีกครั้ง");
-    } finally {
-        if (pdfWrapper) {
-            pdfWrapper.style.position = "absolute";
-            pdfWrapper.style.left = "-9999px";
-            pdfWrapper.style.top = "-9999px";
-        }
-
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerText = "✅ ยืนยันการส่ง";
-        }
-    }
-}
