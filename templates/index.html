@@ -75,7 +75,7 @@
         </div>
     </div>
 
-    <!-- ========================== STEP 2: รายการตรวจ + สรุปผล =========================== -->
+<!-- ========================== STEP 2: รายการตรวจ + สรุปผล =========================== -->
     <div class="step" id="step2">
         <div class="card">
             <h2 id="inspectionTitle">📋 รายการตรวจ</h2>
@@ -86,14 +86,42 @@
 
         <!-- สรุปผล -->
         <div class="card">
-            <h2>📄 สรุปผล</h2>
+            <h2>📄 สรุปผลและเงื่อนไขข้อตกลง</h2>
             <div class="summary-box">
-                <p>ข้าพเจ้าได้ทำการตรวจเช็คสภาพรถเรียบร้อยแล้ว</p>
-                <p>หากเกิดความเสียหายจากการตรวจสอบ บริษัทจะไม่รับผิดชอบทุกกรณี</p>
-                <div class="accept-box">
-                    <input type="checkbox" id="accept">
-                    <label for="accept">ยอมรับเงื่อนไข</label>
+                
+                <!-- กล่องเงื่อนไขข้อตกลง แบบเลื่อนได้ (Scrollable) -->
+                <div class="terms-container" style="max-height: 250px; overflow-y: auto; border: 1px solid #dcdfe6; background-color: #f8f9fa; padding: 16px; border-radius: 8px; text-align: left; font-size: 0.92rem; line-height: 1.6; color: #333; margin-bottom: 16px;">
+                    <h4 style="margin-top: 0; color: #c0392b; font-size: 1rem; border-bottom: 2px solid #e74c3c; padding-bottom: 6px; margin-bottom: 12px;">ข้อกำหนดและเงื่อนไขการปรับความเสียหาย</h4>
+                    
+                    <p style="margin-bottom: 6px;"><strong>กรณีที่ 1:</strong> เมื่อตรวจสอบพบหินปะปนมากับรถบรรทุกอ้อย ชาวไร่หรือเจ้าของรถบรรทุก จะต้องเสียค่าปรับให้กับทางโรงงานตามน้ำหนักหินที่ชั่งได้ดังต่อไปนี้</p>
+                    <ul style="margin-top: 0; margin-bottom: 12px; padding-left: 24px;">
+                        <li>1.1 น้ำหนักหิน 1-49 กิโลกรัม ปรับเป็นเงิน 1,000 บาท</li>
+                        <li>1.2 น้ำหนักหิน 50-99 กิโลกรัม ปรับเป็นเงิน 5,000 บาท</li>
+                        <li>1.3 น้ำหนักหิน 100 กิโลกรัม ขึ้นไป ปรับเป็นเงิน 10,000 บาท และแจ้งความดำเนินคดี</li>
+                    </ul>
+
+                    <p style="margin-bottom: 6px;"><strong>กรณีที่ 2:</strong> เมื่อตรวจพบชิ้นส่วนต่างๆ จากรถบรรทุก เช่น ฝาท้าย ฝาข้าง เหล็ก ไม้ ยางอะไหล่ และสิ่งปลอมปนอื่นที่ปะปนมากับอ้อย</p>
+                    <ul style="margin-top: 0; margin-bottom: 12px; padding-left: 24px;">
+                        <li>2.1 ตกลงสะพานลำเลียงอ้อยทำให้เสียเวลาหยุดเดินเครื่องจักร ปรับเป็นเงิน 1,000 บาท</li>
+                        <li>2.2 เข้าสู่เครื่องจักรและทำให้เครื่องจักรได้รับความเสียหาย ปรับเป็นเงิน 10,000 บาท หรือตามมูลค่าการซ่อมแซมเครื่องจักรที่เสียหายจริง เช่น ใบมีดฟันอ้อยที่หัก เป็นต้น</li>
+                    </ul>
+
+                    <p style="margin-bottom: 12px;"><strong>กรณีที่ 3:</strong> หากรถบรรทุกตกดั๊มพ์และพิสูจน์ได้ว่าเกิดจากจุดล็อคดั๊มพ์ จุดคล้องโซ่ ขาค้ำยันรถเทเลอร์ และอื่นๆ ที่เกิดจากสภาพรถบรรทุกไม่แข็งแรง ไม่เป็นไปตามมาตรฐานรถบรรทุกอ้อยที่โรงงานกำหนด ปรับเป็นเงิน 10,000 บาท และต้องรับผิดชอบค่าซ่อมรถเองทั้งหมด รวมถึงค่าซ่อมเครื่องจักรที่เสียหายให้กับโรงงานตามจริง</p>
+
+                    <p style="margin-bottom: 12px;"><strong>กรณีที่ 4:</strong> หากพบว่ารถบรรทุกอ้อยคันเดิมก่อให้เกิดปัญหาเดิมซ้ำๆ ทางโรงงานขอสงวนสิทธิ์ยกเลิกสัญญาว่าจ้างบรรทุกอ้อยหรือฟ้องร้องดำเนินคดีตามกฎหมายต่อไป</p>
+
+                    <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #bbb; font-weight: 600; color: #2c3e50;">
+                        ข้าพเจ้าขอรับรองว่าข้อมูลที่ระบุในเอกสารฉบับนี้ถูกต้อง ครบถ้วน และเป็นความจริงทุกประการ หากตรวจสอบพบในภายหลังว่าข้อมูลดังกล่าวไม่ถูกต้องหรือไม่ตรงตามข้อเท็จจริง ข้าพเจ้ายินยอมรับผิดชอบต่อความเสียหายที่เกิดขึ้นทั้งหมดตามระเบียบของบริษัท
+                    </div>
                 </div>
+
+                <div class="accept-box" style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 16px 0;">
+    <input type="checkbox" id="accept" disabled style="width: 18px; height: 18px; cursor: not-allowed;">
+    <label for="accept" id="acceptLabel" style="cursor: not-allowed; font-weight: 600; color: #888;">
+        (กรุณาเลื่อนอ่านเงื่อนไขด้านบนให้ครบถ้วนเพื่อยินยอม)
+    </label>
+</div>
+
                 <button id="submitBtn" class="submit-btn">✅ ยืนยันการส่ง</button>
             </div>
         </div>
@@ -102,8 +130,6 @@
             <button class="back-btn" onclick="prevStep()">← ย้อนกลับ</button>
         </div>
     </div>
-
-</div>
 
 <!-- Modal เปิดดูรูป -->
 <div id="imageModal" class="modal-overlay" onclick="closeImageModal()">
@@ -124,16 +150,16 @@
             <div class="corner-shape bottom-right"></div>
 
             <div class="cert-header">
-                <h1 class="cert-title-main">MITR PHOL</h1>
-                <h2 class="cert-title-sub">PHULAUNG</h2>
-                <h3 class="cert-title-doc">CERTIFICATE</h3>
-                <p class="cert-title-desc">OF VEHICLE INSPECTION</p>
+                <h1 class="cert-title-main">มิตรผล</h1>
+                <h2 class="cert-title-sub">ภูหลวง</h2>
+                <h3 class="cert-title-doc">ใบรับรองการตรวจสภาพรถบรรทุกอ้อย</h3>
+                <p class="cert-title-desc">Cane Truck Check System</p>
             </div>
 
             <!-- กล่องข้อมูล 2 ฝั่ง -->
             <div class="cert-grid">
                 <div class="cert-card">
-                    <div class="cert-card-header">Vehicle Information</div>
+                    <div class="cert-card-header">ข้อมูลทั่วไป</div>
                     <div class="cert-card-body info-list">
                         <p><strong>ชื่อผู้ตรวจ :</strong> <span id="pdf-inspector">XX</span></p>
                         <p><strong>ประเภทรถ :</strong> <span id="pdf-vehicle-type">XX</span></p>
@@ -145,7 +171,7 @@
                 </div>
 
                 <div class="cert-card">
-                    <div class="cert-card-header">Inspection Result</div>
+                    <div class="cert-card-header">ผลการตรวจสอบ</div>
                     <div class="cert-card-body flex-center">
                         <div class="result-status-box">
                             <span class="green-check-icon">✔</span>
@@ -157,7 +183,7 @@
 
             <!-- กรอบ Scope Of Inspection -->
             <div class="cert-card full-width">
-                <div class="cert-card-header">SCOPE OF INSPECTION</div>
+                <div class="cert-card-header">ขอบเขตการตรวจสอบ</div>
                 <div class="cert-card-body">
                     <div id="pdf-gallery" class="gallery-container"></div>
 
