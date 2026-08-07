@@ -446,7 +446,11 @@ async function sendDataToGoogleAppsScript(formData, pdfBlob) {
             const fileBlob = await getImageFromDB(Number(i));
             if (fileBlob) {
                 // ย่อขนาดรูปภาพก่อนแปลงเป็น Base64
-                const base64Data = await compressAndConvertToBase64(fileBlob);
+                const base64Data = await compressAndConvertToBase64(
+                    fileBlob,
+                    800,
+                    0.6
+                );
                 const originalFileName = uploadedFileNames[i] || `item_${i}.jpg`;
                 const fileExt = originalFileName.substring(originalFileName.lastIndexOf('.'));
                 const formattedFileName = `item_${i}_${plateClean}_${dateClean}${fileExt}`;
@@ -475,17 +479,21 @@ async function sendDataToGoogleAppsScript(formData, pdfBlob) {
         };
 
         // ส่งแบบ no-cors เพื่อข้ามปัญหาเรื่อง CORS Policy ของเบราว์เซอร์
-        await fetch(GAS_WEB_APP_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { 
-                "Content-Type": "text/plain;charset=utf-8" 
-            },
-            body: JSON.stringify(payload)
-        });
+        const response = await fetch(GAS_WEB_APP_URL, {
+    method: "POST",
+    headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+    },
+    body: JSON.stringify(payload)
+});
 
-        console.log("✅ ส่ง Request ไปยัง Google Apps Script เรียบร้อยแล้ว");
+const result = await response.json();
 
+if (result.status !== "success") {
+    throw new Error(result.error || "Upload Failed");
+}
+
+console.log("✅ ส่งข้อมูลสำเร็จ");
     } catch (error) {
         console.error("❌ เกิดข้อผิดพลาดขณะส่งข้อมูลไป Google Apps Script:", error);
         throw error;
