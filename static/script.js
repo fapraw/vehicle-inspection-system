@@ -394,21 +394,84 @@ function attachAutoSaveListeners() {
 }
 
 // ======================================
-// 6. Helper & API Integration (ฟังก์ชันดาวน์โหลด PDF รองรับ iOS & Android)
+// 6. Helper & API Integration (การส่งข้อมูลและดาวน์โหลด PDF)
 // ======================================
 
-// [ปรับปรุงใหม่]: ฟังก์ชันดาวน์โหลด Blob ให้รองรับทั้ง iOS (Safari) และ Android (Chrome)
+// แปลง Blob หรือ File ให้เป็น Base64 String
+function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64String = reader.result.split(',')[1];
+            resolve(base64String);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
+
+// ฟังก์ชันส่งข้อมูลและไฟล์ PDF ไปยัง Google Apps Script Web App
+async function sendDataToGoogleAppsScript(formData, pdfBlob) {
+    // ⚠️ หมายเหตุ: กรุณาเปลี่ยน URL ด้านล่างนี้ให้ตรงกับ Web App URL ของคุณที่ Deploy จาก Google Apps Script
+    const GOOGLE_SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL";
+
+    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL") {
+        console.warn("ยังไม่ได้ระบุ GOOGLE_SCRIPT_URL ข้ามขั้นตอนการส่งข้อมูลขึ้น Cloud");
+        return;
+    }
+
+    const pdfBase64 = await blobToBase64(pdfBlob);
+    
+    // ดึงไฟล์ภาพถ่ายประกอบทั้งหมดที่ผู้ใช้เลือกไว้จาก IndexedDB
+    const itemImages = [];
+    for (const item of activeItems) {
+        const fileBlob = await getImageFromDB(item.id);
+        if (fileBlob) {
+            const imageBase64 = await blobToBase64(fileBlob);
+            itemImages.push({
+                itemId: item.id,
+                fileName: uploadedFileNames[item.id] || `item_${item.id}.jpg`,
+                mimeType: fileBlob.type || "image/jpeg",
+                base64: imageBase64
+            });
+        }
+    }
+
+    const payload = {
+        inspector: formData.inspector,
+        vehicleType: formData.vehicleType,
+        plate: formData.plate,
+        station: formData.station,
+        date: document.getElementById("currentDate")?.innerText || "",
+        time: document.getElementById("currentTime")?.innerText || "",
+        pdfFile: {
+            fileName: `Certificate_${formData.plate}.pdf`,
+            base64: pdfBase64
+        },
+        images: itemImages,
+        statuses: formData.statuses || {}
+    };
+
+    await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    });
+}
+
+// ฟังก์ชันดาวน์โหลด Blob ให้รองรับทั้ง iOS (Safari) และ Android (Chrome)
 function downloadPdfFile(blob, filename, newTabWindow = null) {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     const blobUrl = URL.createObjectURL(blob);
 
     if (isIOS) {
-        // สำหรับ iOS: อ่าน Blob เป็น Data URL เพื่อให้ Safari สั่งแสดงผล/ดาวน์โหลดได้อย่างสมบูรณ์
         const reader = new FileReader();
         reader.onloadend = function () {
             const dataUrl = reader.result;
             if (newTabWindow && !newTabWindow.closed) {
-                // เปลี่ยนหน้าต่างที่เปิดไว้ล่วงหน้าให้กลายเป็นไฟล์ PDF
                 newTabWindow.location.href = dataUrl;
             } else {
                 window.location.href = dataUrl;
@@ -416,9 +479,8 @@ function downloadPdfFile(blob, filename, newTabWindow = null) {
         };
         reader.readAsDataURL(blob);
     } else {
-        // สำหรับ Android และ Desktop: สร้าง <a> tag เพื่อดาวน์โหลดลงเครื่องโดยตรง
         if (newTabWindow && !newTabWindow.closed) {
-            newTabWindow.close(); // ปิดแท็บสำรองที่เปิดไว้หากไม่ใช่ iOS
+            newTabWindow.close();
         }
         const a = document.createElement('a');
         a.style.display = 'none';
@@ -438,7 +500,6 @@ async function generateAndDownloadPDF(formData) {
     const submitBtn = document.getElementById("submitBtn");
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     
-    // 🚀 [เทคนิคสำคัญสำหรับ iOS]: เปิด Window สำรองไว้ทันทีเมื่อกดยืนยัน (ป้องกัน Safari บล็อก Popup)
     let newTabWindow = null;
     if (isIOS) {
         newTabWindow = window.open('about:blank', '_blank');
@@ -523,15 +584,15 @@ async function generateAndDownloadPDF(formData) {
         // 1. สร้าง Blob ของ PDF
         const pdfBlob = await worker.output('blob');
 
-        // 2. [ทำก่อน] แสดงผล/ดาวน์โหลดไฟล์ PDF ลงเครื่องทันที (ทั้ง iOS และ Android)
+        // 2. แสดงผล/ดาวน์โหลดไฟล์ PDF ลงเครื่องทันที
         downloadPdfFile(pdfBlob, pdfFilename, newTabWindow);
 
-        // 3. ปรับข้อความสถานะปุ่ม เพื่อแจ้งผู้ใช้ว่ากำลังส่งข้อมูลเข้าระบบเบื้องหลัง
+        // 3. ปรับข้อความสถานะปุ่ม
         if (submitBtn) {
             submitBtn.innerText = "⏳ กำลังส่งข้อมูลเข้าระบบ...";
         }
 
-        // 4. [ทำทีหลัง] ส่งข้อมูลและไฟล์ PDF เข้า Google Apps Script (Drive / Sheet)
+        // 4. ส่งข้อมูลและไฟล์ PDF เข้า Google Apps Script (Drive / Sheet)
         await sendDataToGoogleAppsScript(formData, pdfBlob);
 
         alert("✅ สร้างใบ Certificate และส่งข้อมูลเข้าระบบเรียบร้อยแล้ว!");
@@ -547,7 +608,6 @@ async function generateAndDownloadPDF(formData) {
             newTabWindow.close();
         }
         alert("⚠️ เกิดข้อผิดพลาดในการสร้าง PDF หรือส่งข้อมูลเข้า Google Sheet/Drive");
-    }
     } finally {
         if (pdfWrapper) {
             pdfWrapper.style.position = "absolute";
@@ -672,5 +732,3 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 });
-
-
