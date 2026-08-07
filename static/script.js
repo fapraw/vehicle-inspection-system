@@ -168,7 +168,6 @@ function renderInspectionItems(vehicleType) {
         groupTitle = `📋 รายการตรวจ (${vehicleType})`;
     }
 
-    // สมมติว่ามีตัวแปร allItems อยู่ในระบบภายนอก
     if (typeof allItems !== "undefined") {
         activeItems = allItems.filter(item => targetIds.includes(Number(item.id)));
     } else {
@@ -243,13 +242,10 @@ function renderInspectionItems(vehicleType) {
 // 4. จัดการรูปภาพและการปลดล็อคปุ่มสถานะ
 // ======================================
 async function handleImageUpload(input, number) {
-
     const file = input.files[0];
+    if (!file) return;
 
-    console.log(file);
-    console.log(file?.type);
-    console.log(file?.name);
-    console.log(file?.size);
+    console.log("Uploaded File:", file.name, file.type, file.size);
 
     if (uploadedFileUrls[number]) {
         URL.revokeObjectURL(uploadedFileUrls[number]);
@@ -261,21 +257,14 @@ async function handleImageUpload(input, number) {
     uploadedFileNames[number] = file.name;
 
     try {
-
         await saveImageToDB(number, file);
-
     } catch (err) {
-
         console.error("IndexedDB Error", err);
-
     }
 
     restoreUploadedImageUI(number, file.name);
-
     unlockStatusButtons(number);
-
     saveFormData();
-
 }
 
 function restoreUploadedImageUI(number, fileName = "ไฟล์รูปภาพแล้ว") {
@@ -407,19 +396,21 @@ function attachAutoSaveListeners() {
 // ======================================
 // 6. Helper & API Integration (ส่งข้อมูล GAS)
 // ======================================
-// ฟังก์ชันย่อขนาดรูปภาพก่อนส่งเข้า Google Apps Script เพื่อไม่ให้ติด Timeout
-function compressAndConvertToBase64(blob, maxWidth = 1000, quality = 0.7) {
-    return new Promise(async (resolve, reject) => {
-        try {
-            const bitmap = await createImageBitmap(blob);
 
-            let width = bitmap.width;
-            let height = bitmap.height;
+// [แก้ไขสำหรับ iOS]: ปรับมาย่อรูปด้วย Image Object เพื่อรองรับรูปความละเอียดสูงจาก iPhone
+function compressAndConvertToBase64(blob, maxWidth = 800, quality = 0.6) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(blob);
+
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            let width = img.width;
+            let height = img.height;
 
             if (width > maxWidth) {
-                height = Math.round(height * maxWidth / width);
+                height = Math.round((height * maxWidth) / width);
                 width = maxWidth;
-
             }
 
             const canvas = document.createElement("canvas");
@@ -427,25 +418,19 @@ function compressAndConvertToBase64(blob, maxWidth = 1000, quality = 0.7) {
             canvas.height = height;
 
             const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
 
-            ctx.drawImage(bitmap,0,0,width,height);
+            const base64 = canvas.toDataURL("image/jpeg", quality).split(",")[1];
+            resolve(base64);
+        };
 
-            resolve(
-                canvas
-                .toDataURL("image/jpeg",quality)
-                .split(",")[1]
-            );
-
-        }
-
-        catch(err){
-
+        img.onerror = (err) => {
+            URL.revokeObjectURL(url);
             reject(err);
+        };
 
-        }
-
+        img.src = url;
     });
-
 }
 
 // แปลง PDF Blob เป็น Base64 ปกติ
@@ -461,9 +446,27 @@ function blobToBase64(blob) {
     });
 }
 
-// ฟังก์ชันส่งข้อมูลเข้า Google Apps Script
+// [แก้ไขสำหรับ iOS]: ดาวน์โหลด/เปิด PDF ป้องกัน Safari บล็อก
+function downloadBlobForIOS(blob, filename) {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const url = URL.createObjectURL(blob);
+
+    if (isIOS) {
+        // บน iOS ให้เปิด PDF ในแท็บใหม่ เพื่อให้ผู้ใช้เปิดดูหรือบันทึกได้โดยไม่ถูก Safari บล็อก
+        window.open(url, '_blank');
+    } else {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+// [แก้ไขสำหรับ iOS]: ใช้ mode: "no-cors" เพื่อไม่ให้ติดปัญหา Redirection & CORS บน Safari
 async function sendDataToGoogleAppsScript(formData, pdfBlob) {
-    // ⚠️ ตรวจสอบว่าใช้ Web App URL ล่าสุดจากการ Deploy ใหม่แล้ว
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyJTJz4wJJ8sE9EhCKIuj6q64s89pCC6HnNBN4eTraED93nNqUSE8wE4pPGiN6n-bUD/exec";
 
     try {
@@ -475,12 +478,7 @@ async function sendDataToGoogleAppsScript(formData, pdfBlob) {
             const i = item.id;
             const fileBlob = await getImageFromDB(Number(i));
             if (fileBlob) {
-                // ย่อขนาดรูปภาพก่อนแปลงเป็น Base64
-                const base64Data = await compressAndConvertToBase64(
-                    fileBlob,
-                    800,
-                    0.6
-                );
+                const base64Data = await compressAndConvertToBase64(fileBlob, 800, 0.6);
                 const originalFileName = uploadedFileNames[i] || `item_${i}.jpg`;
                 const fileExt = originalFileName.substring(originalFileName.lastIndexOf('.'));
                 const formattedFileName = `item_${i}_${plateClean}_${dateClean}${fileExt}`;
@@ -488,7 +486,7 @@ async function sendDataToGoogleAppsScript(formData, pdfBlob) {
                 inspectionImages.push({
                     itemId: i,
                     fileName: formattedFileName,
-                    mimeType:fileBlob.type,
+                    mimeType: "image/jpeg",
                     base64: base64Data,
                     status: document.querySelector(`input[name="status${i}"]:checked`)?.value || "-"
                 });
@@ -509,22 +507,17 @@ async function sendDataToGoogleAppsScript(formData, pdfBlob) {
             images: inspectionImages
         };
 
-        // ส่งแบบ no-cors เพื่อข้ามปัญหาเรื่อง CORS Policy ของเบราว์เซอร์
-        const response = await fetch(GAS_WEB_APP_URL, {
-    method: "POST",
-    headers: {
-        "Content-Type": "text/plain;charset=utf-8"
-    },
-    body: JSON.stringify(payload)
-});
+        // ส่งแบบ mode: "no-cors" ข้ามปัญหา CORS บล็อกบน Safari iOS
+        await fetch(GAS_WEB_APP_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify(payload)
+        });
 
-const result = await response.json();
-
-if (result.status !== "success") {
-    throw new Error(result.error || "Upload Failed");
-}
-
-console.log("✅ ส่งข้อมูลสำเร็จ");
+        console.log("✅ ส่งข้อมูลเข้า Google Apps Script เรียบร้อยแล้ว");
     } catch (error) {
         console.error("❌ เกิดข้อผิดพลาดขณะส่งข้อมูลไป Google Apps Script:", error);
         throw error;
@@ -556,7 +549,7 @@ async function generateAndDownloadPDF(formData) {
             if (uploadedFileUrls[i]) {
                 const imgElement = document.createElement("img");
                 imgElement.className = "cert-img-thumb";
-                
+
                 const imgPromise = new Promise((resolve) => {
                     imgElement.onload = () => resolve();
                     imgElement.onerror = () => resolve();
@@ -583,9 +576,10 @@ async function generateAndDownloadPDF(formData) {
     }
 
     const dateClean = dateStr.replace(/\//g, '-');
+    const pdfFilename = `Certificate_${formData.plate}_${dateClean}.pdf`;
     const opt = {
         margin:       0,
-        filename:     `Certificate_${formData.plate}_${dateClean}.pdf`,
+        filename:     pdfFilename,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { 
             scale: 2, 
@@ -593,10 +587,8 @@ async function generateAndDownloadPDF(formData) {
             logging: false,
             scrollX: 0,
             scrollY: 0
-            // ลบ width และ height ออก เพื่อให้ html2canvas คำนวณขนาดตาม Element จริงอัตโนมัติ
         },
         jsPDF:        { unit: 'pt', format: 'a4', orientation: 'portrait' },
-        // เพิ่มตัวเลือกสั่งห้ามแบ่งหน้าอัตโนมัติ
         pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
@@ -606,29 +598,27 @@ async function generateAndDownloadPDF(formData) {
             submitBtn.innerText = "⏳ กำลังส่งข้อมูล และสร้าง PDF...";
         }
 
-        // ข้อแนะนำเพิ่มเติม: เพื่อไม่ให้ระบบต้อง Render HTML เป็น Canvas ซ้ำ 2 รอบ
-        // สามารถดึง worker ของ html2pdf มาใช้งานร่วมกันได้ครับ
         const worker = html2pdf().set(opt).from(element);
 
         // 1. สร้าง Blob ของ PDF
         const pdfBlob = await worker.output('blob');
 
-        // 2. ดาวน์โหลด PDF ลงเครื่อง
-        await worker.save();
+        // 2. ดาวน์โหลด/เปิดไฟล์ PDF (รองรับทั้ง iOS และ Desktop)
+        downloadBlobForIOS(pdfBlob, pdfFilename);
 
         // 3. ส่งข้อมูลเข้า Google Sheet / Google Drive
         await sendDataToGoogleAppsScript(formData, pdfBlob);
 
-        alert("✅ ตรวจสอบ ส่งข้อมูลเข้า Google Drive และดาวน์โหลดใบ Certificate เรียบร้อยแล้ว!");
+        alert("✅ ส่งข้อมูลเข้า Google Drive และสร้างใบ Certificate เรียบร้อยแล้ว!");
 
         // 4. ล้างข้อมูลหลังส่งสำเร็จ
         localStorage.removeItem("inspectionFormData");
         await clearAllImageData();
-        location.reload(); // รีโหลดเพื่อเริ่มต้นฟอร์มใหม่
+        location.reload();
 
     } catch (error) {
         console.error("PDF & Data Submission Error:", error);
-        alert("⚠️ ดาวน์โหลด PDF สำเร็จ แต่เกิดข้อผิดพลาดในการส่งข้อมูลเข้า Google Sheet/Drive");
+        alert("⚠️ เกิดข้อผิดพลาดในการส่งข้อมูลเข้า Google Sheet/Drive หรือสร้าง PDF");
     } finally {
         if (pdfWrapper) {
             pdfWrapper.style.position = "absolute";
@@ -730,6 +720,7 @@ window.onload = async function() {
         });
     }
 };
+
 document.addEventListener("DOMContentLoaded", function () {
     const termsContainer = document.querySelector(".terms-container");
     const acceptCheckbox = document.getElementById("accept");
@@ -737,14 +728,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (termsContainer && acceptCheckbox) {
         termsContainer.addEventListener("scroll", function () {
-            // คำนวณว่าเลื่อนถึงล่างสุดแล้วหรือยัง (เผื่อระยะไว้เล็กน้อย 5px)
             const isScrolledToBottom = termsContainer.scrollHeight - termsContainer.scrollTop <= termsContainer.clientHeight + 5;
 
             if (isScrolledToBottom) {
-                // เปิดให้สามารถกดติ๊กได้
                 acceptCheckbox.disabled = false;
                 acceptCheckbox.style.cursor = "pointer";
-                
+
                 if (acceptLabel) {
                     acceptLabel.style.cursor = "pointer";
                     acceptLabel.style.color = "#333";
@@ -754,10 +743,3 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 });
-
-
-
-
-
-
-
