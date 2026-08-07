@@ -394,10 +394,44 @@ function attachAutoSaveListeners() {
 }
 
 // ======================================
-// 6. Helper & API Integration (การส่งข้อมูลและดาวน์โหลด PDF)
+// 6. Helper & API Integration (ย่อภาพ, ส่ง GAS, เด้งโชว์ & โหลด PDF)
 // ======================================
 
-// แปลง Blob หรือ File ให้เป็น Base64 String
+function compressAndConvertToBase64(blob, maxWidth = 800, quality = 0.6) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(blob);
+
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxWidth) {
+                height = Math.round((height * maxWidth) / width);
+                width = maxWidth;
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const base64 = canvas.toDataURL("image/jpeg", quality).split(",")[1];
+            resolve(base64);
+        };
+
+        img.onerror = (err) => {
+            URL.revokeObjectURL(url);
+            reject(err);
+        };
+
+        img.src = url;
+    });
+}
+
 function blobToBase64(blob) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -410,103 +444,98 @@ function blobToBase64(blob) {
     });
 }
 
-// ฟังก์ชันส่งข้อมูลและไฟล์ PDF ไปยัง Google Apps Script Web App
-async function sendDataToGoogleAppsScript(formData, pdfBlob) {
-    // ⚠️ หมายเหตุ: กรุณาเปลี่ยน URL ด้านล่างนี้ให้ตรงกับ Web App URL ของคุณที่ Deploy จาก Google Apps Script
-    const GOOGLE_SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL";
-
-    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL") {
-        console.warn("ยังไม่ได้ระบุ GOOGLE_SCRIPT_URL ข้ามขั้นตอนการส่งข้อมูลขึ้น Cloud");
-        return;
-    }
-
-    const pdfBase64 = await blobToBase64(pdfBlob);
-    
-    // ดึงไฟล์ภาพถ่ายประกอบทั้งหมดที่ผู้ใช้เลือกไว้จาก IndexedDB
-    const itemImages = [];
-    for (const item of activeItems) {
-        const fileBlob = await getImageFromDB(item.id);
-        if (fileBlob) {
-            const imageBase64 = await blobToBase64(fileBlob);
-            itemImages.push({
-                itemId: item.id,
-                fileName: uploadedFileNames[item.id] || `item_${item.id}.jpg`,
-                mimeType: fileBlob.type || "image/jpeg",
-                base64: imageBase64
-            });
-        }
-    }
-
-    const payload = {
-        inspector: formData.inspector,
-        vehicleType: formData.vehicleType,
-        plate: formData.plate,
-        station: formData.station,
-        date: document.getElementById("currentDate")?.innerText || "",
-        time: document.getElementById("currentTime")?.innerText || "",
-        pdfFile: {
-            fileName: `Certificate_${formData.plate}.pdf`,
-            base64: pdfBase64
-        },
-        images: itemImages,
-        statuses: formData.statuses || {}
-    };
-
-    await fetch(GOOGLE_SCRIPT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-    });
-}
-
-// ฟังก์ชันดาวน์โหลด Blob ให้รองรับทั้ง iOS (Safari) และ Android (Chrome)
-function downloadPdfFile(blob, filename, newTabWindow = null) {
+/**
+ * ฟังก์ชันเปิดดูและดาวน์โหลด PDF ที่รองรับทั้ง iOS, Android และ Desktop
+ */
+function handlePDFPreviewAndDownload(blob, filename, targetWindow = null) {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    const blobUrl = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
 
     if (isIOS) {
-        const reader = new FileReader();
-        reader.onloadend = function () {
-            const dataUrl = reader.result;
-            if (newTabWindow && !newTabWindow.closed) {
-                newTabWindow.location.href = dataUrl;
-            } else {
-                window.location.href = dataUrl;
-            }
-        };
-        reader.readAsDataURL(blob);
-    } else {
-        if (newTabWindow && !newTabWindow.closed) {
-            newTabWindow.close();
+        // บน iOS: แสดงตัวอย่าง PDF ในแท็บใหม่
+        if (targetWindow && !targetWindow.closed) {
+            targetWindow.location.href = url;
+        } else {
+            window.open(url, '_blank');
         }
+    } else {
+        // บน Android และ Desktop: เปิดแสดง PDF ในแท็บใหม่ + สั่งดาวน์โหลดอัตโนมัติ
+        if (targetWindow && !targetWindow.closed) {
+            targetWindow.location.href = url;
+        } else {
+            window.open(url, '_blank');
+        }
+
         const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = blobUrl;
+        a.href = url;
         a.download = filename;
         document.body.appendChild(a);
         a.click();
-        
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(blobUrl);
-        }, 2000);
+        document.body.removeChild(a);
+    }
+
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+async function sendDataToGoogleAppsScript(formData, pdfBlob) {
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyJTJz4wJJ8sE9EhCKIuj6q64s89pCC6HnNBN4eTraED93nNqUSE8wE4pPGiN6n-bUD/exec";
+
+    try {
+        const dateClean = (document.getElementById("currentDate")?.innerText || "").replace(/\//g, '-');
+        const plateClean = formData.plate.replace(/\s+/g, '_');
+
+        const inspectionImages = [];
+        for (const item of activeItems) {
+            const i = item.id;
+            const fileBlob = await getImageFromDB(Number(i));
+            if (fileBlob) {
+                const base64Data = await compressAndConvertToBase64(fileBlob, 800, 0.6);
+                const originalFileName = uploadedFileNames[i] || `item_${i}.jpg`;
+                const fileExt = originalFileName.substring(originalFileName.lastIndexOf('.'));
+                const formattedFileName = `item_${i}_${plateClean}_${dateClean}${fileExt}`;
+
+                inspectionImages.push({
+                    itemId: i,
+                    fileName: formattedFileName,
+                    mimeType: "image/jpeg",
+                    base64: base64Data,
+                    status: document.querySelector(`input[name="status${i}"]:checked`)?.value || "-"
+                });
+            }
+        }
+
+        const pdfBase64 = pdfBlob ? await blobToBase64(pdfBlob) : "";
+
+        const payload = {
+            inspector: formData.inspector,
+            vehicleType: formData.vehicleType,
+            plate: formData.plate,
+            station: formData.station,
+            inspectionDate: document.getElementById("currentDate")?.innerText || "-",
+            inspectionTime: document.getElementById("currentTime")?.innerText || "-",
+            pdfFileName: `Certificate_${plateClean}_${dateClean}.pdf`,
+            pdfBase64: pdfBase64,
+            images: inspectionImages
+        };
+
+        await fetch(GAS_WEB_APP_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        console.log("✅ ส่งข้อมูลเข้า Google Apps Script เรียบร้อยแล้ว");
+    } catch (error) {
+        console.error("❌ เกิดข้อผิดพลาดขณะส่งข้อมูลไป Google Apps Script:", error);
+        throw error;
     }
 }
 
-async function generateAndDownloadPDF(formData) {
+async function generateAndDownloadPDF(formData, targetWindow = null) {
     const submitBtn = document.getElementById("submitBtn");
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    
-    let newTabWindow = null;
-    if (isIOS) {
-        newTabWindow = window.open('about:blank', '_blank');
-        if (newTabWindow) {
-            newTabWindow.document.write("<html><head><title>กำลังสร้างไฟล์ PDF...</title></head><body style='font-family:sans-serif; text-align:center; padding-top:50px;'><h2>⏳ กำลังสร้างใบ Certificate กรุณารอสักครู่...</h2></body></html>");
-        }
-    }
 
     const dateStr = document.getElementById("currentDate")?.innerText || "-";
     const timeStr = document.getElementById("currentTime")?.innerText || "-";
@@ -576,7 +605,7 @@ async function generateAndDownloadPDF(formData) {
     try {
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.innerText = "⏳ กำลังสร้าง PDF...";
+            submitBtn.innerText = "⏳ กำลังส่งข้อมูล และสร้าง PDF...";
         }
 
         const worker = html2pdf().set(opt).from(element);
@@ -584,30 +613,25 @@ async function generateAndDownloadPDF(formData) {
         // 1. สร้าง Blob ของ PDF
         const pdfBlob = await worker.output('blob');
 
-        // 2. แสดงผล/ดาวน์โหลดไฟล์ PDF ลงเครื่องทันที
-        downloadPdfFile(pdfBlob, pdfFilename, newTabWindow);
+        // 2. เด้งโชว์ PDF + สั่งดาวน์โหลดลงเครื่องทันที
+        handlePDFPreviewAndDownload(pdfBlob, pdfFilename, targetWindow);
 
-        // 3. ปรับข้อความสถานะปุ่ม
-        if (submitBtn) {
-            submitBtn.innerText = "⏳ กำลังส่งข้อมูลเข้าระบบ...";
-        }
-
-        // 4. ส่งข้อมูลและไฟล์ PDF เข้า Google Apps Script (Drive / Sheet)
+        // 3. ส่งข้อมูลเข้า Google Sheet / Google Drive
         await sendDataToGoogleAppsScript(formData, pdfBlob);
 
-        alert("✅ สร้างใบ Certificate และส่งข้อมูลเข้าระบบเรียบร้อยแล้ว!");
+        alert("✅ ส่งข้อมูลเข้า Google Drive และสร้างใบ Certificate เรียบร้อยแล้ว!");
 
-        // 5. ล้างข้อมูลหลังส่งสำเร็จ
+        // 4. ล้างข้อมูลหลังส่งสำเร็จ
         localStorage.removeItem("inspectionFormData");
         await clearAllImageData();
         location.reload();
 
     } catch (error) {
         console.error("PDF & Data Submission Error:", error);
-        if (newTabWindow && !newTabWindow.closed) {
-            newTabWindow.close();
+        if (targetWindow && !targetWindow.closed) {
+            targetWindow.close();
         }
-        alert("⚠️ เกิดข้อผิดพลาดในการสร้าง PDF หรือส่งข้อมูลเข้า Google Sheet/Drive");
+        alert("⚠️ เกิดข้อผิดพลาดในการส่งข้อมูลเข้า Google Sheet/Drive หรือสร้าง PDF");
     } finally {
         if (pdfWrapper) {
             pdfWrapper.style.position = "absolute";
@@ -700,12 +724,28 @@ window.onload = async function() {
                 return;
             }
 
+            // เปิดหน้าต่างแท็บใหม่ไว้ล่วงหน้าทันที เพื่อป้องกัน Safari/Chrome บล็อก Pop-up
+            const previewWindow = window.open('', '_blank');
+            if (previewWindow) {
+                previewWindow.document.write(`
+                    <html lang="th">
+                    <head><title>กำลังสร้างเอกสาร PDF...</title></head>
+                    <body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; background-color:#f4f4f9; color:#333;">
+                        <div style="text-align:center;">
+                            <h2>⏳ กำลังสร้างเอกสาร PDF และส่งข้อมูล...</h2>
+                            <p>กรุณารอซักครู่ ระบบกำลังจัดทำใบ Certificate ให้คุณ</p>
+                        </div>
+                    </body>
+                    </html>
+                `);
+            }
+
             await generateAndDownloadPDF({
                 inspector,
                 vehicleType,
                 plate,
                 station
-            });
+            }, previewWindow);
         });
     }
 };
