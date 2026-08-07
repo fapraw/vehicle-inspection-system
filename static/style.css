@@ -920,23 +920,3 @@ button {
     font-weight: 600;
     margin-bottom: 2pt;
 }
-
-/* โครงสร้างป๊อบอัพ Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.6); /* ฉากหลังสีดำจางๆ */
-  z-index: 9999; /* มั่นใจว่าอยู่ชั้นบนสุดเสมอ */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow-y: auto;
-}
-
-/* ป้องกันไม่ให้หน้าหลักด้านหลัง Scroll ได้ขณะเปิด Modal */
-body.modal-open {
-  overflow: hidden;
-}
