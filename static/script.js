@@ -744,81 +744,87 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
-async function handleSubmitData() {
-  const submitBtn = document.getElementById("submitBtn"); // ปุ่มส่งข้อมูล
-  const confirmModal = document.getElementById("confirmModal"); // หน้าต่าง Modal
+async function handleSubmitProcess() {
+  const submitBtn = document.getElementById("submitBtn"); // ID ของปุ่มกดส่ง
+  const modal = document.getElementById("confirmModal");   // ID ของ Modal ป๊อบอัพ
 
   try {
-    // 1. แสดงสถานะกำลังส่งข้อมูล และปิดไม่ให้กดซ้ำ
+    // Step 1: ล็อกปุ่มกดและแสดงสถานะกำลังส่งข้อมูล
     submitBtn.disabled = true;
-    submitBtn.innerText = "⏳ กำลังส่งข้อมูล...";
+    submitBtn.innerText = "⏳ กำลังบันทึกข้อมูลลงระบบ...";
 
-    // 2. สร้าง PDF Blob ในเครื่องฝั่ง Frontend ก่อน (ถ้าต้องการเซฟไฟล์ลงเครื่อง)
-    // ตัวอย่างการใช้ html2pdf หรือ jsPDF
-    const element = document.getElementById("pdfContentToExport");
-    const pdfBlob = await html2pdf().from(element).output('blob');
-    
-    // แปลง PDF Blob เป็น Base64 เพื่อส่งไป Apps Script
-    const pdfBase64 = await blobToBase64(pdfBlob);
-
-    // 3. จัดเตรียม payload สำหรับส่งไป Apps Script
+    // Step 2: เตรียม Payload ข้อมูล (ส่งภาพและข้อมูลทั่วไป)
     const payload = {
-      plate: document.getElementById("plateInput").value,
-      pdfBase64: pdfBase64,
-      pdfFileName: `Certificate_${Date.now()}.pdf`,
-      images: getUploadedImagesBase64(), // ฟังก์ชันดึงรูปภาพ Base64
-      // ...ใส่ field อื่นๆ ตามต้องการ
+      inspector: document.getElementById("inspectorInput")?.value || "",
+      vehicleType: document.getElementById("vehicleTypeInput")?.value || "",
+      plate: document.getElementById("plateInput")?.value || "ไม่ระบุทะเบียน",
+      station: document.getElementById("stationInput")?.value || "",
+      inspectionDate: document.getElementById("inspectionDateInput")?.value || "",
+      inspectionTime: document.getElementById("inspectionTimeInput")?.value || "",
+      images: getUploadedImagesBase64() // ฟังก์ชันดึงรูปภาพแบบ Base64 ของคุณ
     };
 
-    // 4. ส่งข้อมูลไปยัง Apps Script (POST Request)
-    const response = await fetch("YOUR_GAS_WEB_APP_URL", {
+    // Step 3: ยิงส่งข้อมูลไปยัง Apps Script ก่อน (ยังไม่สร้าง PDF)
+    const gasAppUrl = "YOUR_APPS_SCRIPT_WEB_APP_URL";
+    
+    const response = await fetch(gasAppUrl, {
       method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" }, // ใช้ text/plain เพื่อเลี่ยงปัญหาสิทธิ์ CORS บน Apps Script
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload)
     });
 
     const result = await response.json();
 
+    // Step 4: ตรวจสอบผลลัพธ์การบันทึก
     if (result.status === "success") {
-      // 5. เมื่อส่งสำเร็จ ปิด Modal ทันทีเพื่อแก้ปัญหา UI ค้าง
-      confirmModal.style.display = "none";
-      alert("บันทึกข้อมูลเรียบร้อยแล้ว!");
+      
+      // ปรับข้อความปุ่มระหว่างสร้าง PDF
+      submitBtn.innerText = "📄 กำลังสร้างเอกสาร PDF...";
 
-      // 6. สั่งดาวน์โหลด PDF ลงเครื่องมือถือ/คอมพิวเตอร์ทันที
-      downloadPdfBlob(pdfBlob, payload.pdfFileName);
+      // Step 5: ปิด Modal ป๊อบอัพยืนยันเพื่อเคลียร์หน้าจอ
+      if (modal) {
+        modal.style.display = "none";
+      }
+
+      // Step 6: สร้าง PDF Blob จาก Element หน้าเอกสารของคุณ
+      const pdfElement = document.getElementById("pdfCertificateView"); // Element หน้าเอกสารที่จะแปลงเป็น PDF
+      
+      // กำหนดคอนฟิกของ html2pdf
+      const opt = {
+        margin:       0.5,
+        filename:     `Certificate_${payload.plate}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+      };
+
+      // สร้าง PDF Blob
+      const pdfBlob = await html2pdf().set(opt).from(pdfElement).output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+
+      // Step 7: เด้งเปิดหน้า PDF ใน Tab ใหม่
+      window.open(pdfUrl, '_blank');
+
+      // Step 8: สั่งดาวน์โหลดลงเครื่องอัตโนมัติ
+      const downloadLink = document.createElement("a");
+      downloadLink.href = pdfUrl;
+      downloadLink.download = `Certificate_${payload.plate}.pdf`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+
+      alert("บันทึกข้อมูลและสร้าง PDF เรียบร้อยแล้ว!");
 
     } else {
-      throw new Error(result.error || "เกิดข้อผิดพลาดในการบันทึก");
+      throw new Error(result.error || "ไม่สามารถบันทึกข้อมูลได้");
     }
 
   } catch (error) {
-    console.error("Submit error:", error);
+    console.error("Process Error:", error);
     alert("เกิดข้อผิดพลาด: " + error.message);
   } finally {
-    // คืนค่าปุ่มกดให้กลับมาใช้งานได้ปกติเผื่อผู้ใช้ต้องการลองใหม่
+    // คืนค่าสถานะปุ่มกด
     submitBtn.disabled = false;
-    submitBtn.innerText = "ตกลง / ส่งข้อมูล";
+    submitBtn.innerText = "ตกลง / ยืนยัน";
   }
-}
-
-// Helper: แปลง Blob เป็น Base64
-function blobToBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
-
-// Helper: สั่งดาวน์โหลดไฟล์ PDF ลงเครื่องอัตโนมัติ
-function downloadPdfBlob(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
