@@ -743,3 +743,82 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 });
+
+async function handleSubmitData() {
+  const submitBtn = document.getElementById("submitBtn"); // ปุ่มส่งข้อมูล
+  const confirmModal = document.getElementById("confirmModal"); // หน้าต่าง Modal
+
+  try {
+    // 1. แสดงสถานะกำลังส่งข้อมูล และปิดไม่ให้กดซ้ำ
+    submitBtn.disabled = true;
+    submitBtn.innerText = "⏳ กำลังส่งข้อมูล...";
+
+    // 2. สร้าง PDF Blob ในเครื่องฝั่ง Frontend ก่อน (ถ้าต้องการเซฟไฟล์ลงเครื่อง)
+    // ตัวอย่างการใช้ html2pdf หรือ jsPDF
+    const element = document.getElementById("pdfContentToExport");
+    const pdfBlob = await html2pdf().from(element).output('blob');
+    
+    // แปลง PDF Blob เป็น Base64 เพื่อส่งไป Apps Script
+    const pdfBase64 = await blobToBase64(pdfBlob);
+
+    // 3. จัดเตรียม payload สำหรับส่งไป Apps Script
+    const payload = {
+      plate: document.getElementById("plateInput").value,
+      pdfBase64: pdfBase64,
+      pdfFileName: `Certificate_${Date.now()}.pdf`,
+      images: getUploadedImagesBase64(), // ฟังก์ชันดึงรูปภาพ Base64
+      // ...ใส่ field อื่นๆ ตามต้องการ
+    };
+
+    // 4. ส่งข้อมูลไปยัง Apps Script (POST Request)
+    const response = await fetch("YOUR_GAS_WEB_APP_URL", {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // ใช้ text/plain เพื่อเลี่ยงปัญหาสิทธิ์ CORS บน Apps Script
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+
+    if (result.status === "success") {
+      // 5. เมื่อส่งสำเร็จ ปิด Modal ทันทีเพื่อแก้ปัญหา UI ค้าง
+      confirmModal.style.display = "none";
+      alert("บันทึกข้อมูลเรียบร้อยแล้ว!");
+
+      // 6. สั่งดาวน์โหลด PDF ลงเครื่องมือถือ/คอมพิวเตอร์ทันที
+      downloadPdfBlob(pdfBlob, payload.pdfFileName);
+
+    } else {
+      throw new Error(result.error || "เกิดข้อผิดพลาดในการบันทึก");
+    }
+
+  } catch (error) {
+    console.error("Submit error:", error);
+    alert("เกิดข้อผิดพลาด: " + error.message);
+  } finally {
+    // คืนค่าปุ่มกดให้กลับมาใช้งานได้ปกติเผื่อผู้ใช้ต้องการลองใหม่
+    submitBtn.disabled = false;
+    submitBtn.innerText = "ตกลง / ส่งข้อมูล";
+  }
+}
+
+// Helper: แปลง Blob เป็น Base64
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// Helper: สั่งดาวน์โหลดไฟล์ PDF ลงเครื่องอัตโนมัติ
+function downloadPdfBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
