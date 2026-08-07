@@ -243,21 +243,39 @@ function renderInspectionItems(vehicleType) {
 // 4. จัดการรูปภาพและการปลดล็อคปุ่มสถานะ
 // ======================================
 async function handleImageUpload(input, number) {
+
     const file = input.files[0];
-    if (!file) return;
+
+    console.log(file);
+    console.log(file?.type);
+    console.log(file?.name);
+    console.log(file?.size);
 
     if (uploadedFileUrls[number]) {
         URL.revokeObjectURL(uploadedFileUrls[number]);
     }
+
     const fileUrl = URL.createObjectURL(file);
+
     uploadedFileUrls[number] = fileUrl;
     uploadedFileNames[number] = file.name;
 
-    await saveImageToDB(number, file);
+    try {
+
+        await saveImageToDB(number, file);
+
+    } catch (err) {
+
+        console.error("IndexedDB Error", err);
+
+    }
 
     restoreUploadedImageUI(number, file.name);
+
     unlockStatusButtons(number);
+
     saveFormData();
+
 }
 
 function restoreUploadedImageUI(number, fileName = "ไฟล์รูปภาพแล้ว") {
@@ -391,16 +409,17 @@ function attachAutoSaveListeners() {
 // ======================================
 // ฟังก์ชันย่อขนาดรูปภาพก่อนส่งเข้า Google Apps Script เพื่อไม่ให้ติด Timeout
 function compressAndConvertToBase64(blob, maxWidth = 1000, quality = 0.7) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.src = URL.createObjectURL(blob);
-        img.onload = () => {
-            let width = img.width;
-            let height = img.height;
+    return new Promise(async (resolve, reject) => {
+        try {
+            const bitmap = await createImageBitmap(blob);
+
+            let width = bitmap.width;
+            let height = bitmap.height;
 
             if (width > maxWidth) {
-                height = Math.round((height * maxWidth) / width);
+                height = Math.round(height * maxWidth / width);
                 width = maxWidth;
+
             }
 
             const canvas = document.createElement("canvas");
@@ -408,14 +427,25 @@ function compressAndConvertToBase64(blob, maxWidth = 1000, quality = 0.7) {
             canvas.height = height;
 
             const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0, width, height);
 
-            const dataUrl = canvas.toDataURL("image/jpeg", quality);
-            URL.revokeObjectURL(img.src);
-            resolve(dataUrl.split(",")[1]);
-        };
-        img.onerror = (err) => reject(err);
+            ctx.drawImage(bitmap,0,0,width,height);
+
+            resolve(
+                canvas
+                .toDataURL("image/jpeg",quality)
+                .split(",")[1]
+            );
+
+        }
+
+        catch(err){
+
+            reject(err);
+
+        }
+
     });
+
 }
 
 // แปลง PDF Blob เป็น Base64 ปกติ
@@ -458,6 +488,7 @@ async function sendDataToGoogleAppsScript(formData, pdfBlob) {
                 inspectionImages.push({
                     itemId: i,
                     fileName: formattedFileName,
+                    mimeType:fileBlob.type,
                     base64: base64Data,
                     status: document.querySelector(`input[name="status${i}"]:checked`)?.value || "-"
                 });
