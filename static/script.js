@@ -394,138 +394,58 @@ function attachAutoSaveListeners() {
 }
 
 // ======================================
-// 6. Helper & API Integration (ส่งข้อมูล GAS)
+// 6. Helper & API Integration (ฟังก์ชันดาวน์โหลด PDF รองรับ iOS & Android)
 // ======================================
 
-// [แก้ไขสำหรับ iOS]: ปรับมาย่อรูปด้วย Image Object เพื่อรองรับรูปความละเอียดสูงจาก iPhone
-function compressAndConvertToBase64(blob, maxWidth = 800, quality = 0.6) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        const url = URL.createObjectURL(blob);
-
-        img.onload = () => {
-            URL.revokeObjectURL(url);
-            let width = img.width;
-            let height = img.height;
-
-            if (width > maxWidth) {
-                height = Math.round((height * maxWidth) / width);
-                width = maxWidth;
-            }
-
-            const canvas = document.createElement("canvas");
-            canvas.width = width;
-            canvas.height = height;
-
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0, width, height);
-
-            const base64 = canvas.toDataURL("image/jpeg", quality).split(",")[1];
-            resolve(base64);
-        };
-
-        img.onerror = (err) => {
-            URL.revokeObjectURL(url);
-            reject(err);
-        };
-
-        img.src = url;
-    });
-}
-
-// แปลง PDF Blob เป็น Base64 ปกติ
-function blobToBase64(blob) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const base64String = reader.result.split(',')[1];
-            resolve(base64String);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
-}
-
-// [แก้ไขสำหรับ iOS]: ดาวน์โหลด/เปิด PDF ป้องกัน Safari บล็อก
-function downloadBlobForIOS(blob, filename) {
+// [ปรับปรุงใหม่]: ฟังก์ชันดาวน์โหลด Blob ให้รองรับทั้ง iOS (Safari) และ Android (Chrome)
+function downloadPdfFile(blob, filename, newTabWindow = null) {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    const url = URL.createObjectURL(blob);
+    const blobUrl = URL.createObjectURL(blob);
 
     if (isIOS) {
-        // บน iOS ให้เปิด PDF ในแท็บใหม่ เพื่อให้ผู้ใช้เปิดดูหรือบันทึกได้โดยไม่ถูก Safari บล็อก
-        window.open(url, '_blank');
+        // สำหรับ iOS: อ่าน Blob เป็น Data URL เพื่อให้ Safari สั่งแสดงผล/ดาวน์โหลดได้อย่างสมบูรณ์
+        const reader = new FileReader();
+        reader.onloadend = function () {
+            const dataUrl = reader.result;
+            if (newTabWindow && !newTabWindow.closed) {
+                // เปลี่ยนหน้าต่างที่เปิดไว้ล่วงหน้าให้กลายเป็นไฟล์ PDF
+                newTabWindow.location.href = dataUrl;
+            } else {
+                window.location.href = dataUrl;
+            }
+        };
+        reader.readAsDataURL(blob);
     } else {
+        // สำหรับ Android และ Desktop: สร้าง <a> tag เพื่อดาวน์โหลดลงเครื่องโดยตรง
+        if (newTabWindow && !newTabWindow.closed) {
+            newTabWindow.close(); // ปิดแท็บสำรองที่เปิดไว้หากไม่ใช่ iOS
+        }
         const a = document.createElement('a');
-        a.href = url;
+        a.style.display = 'none';
+        a.href = blobUrl;
         a.download = filename;
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
-    }
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-}
-
-// [แก้ไขสำหรับ iOS]: ใช้ mode: "no-cors" เพื่อไม่ให้ติดปัญหา Redirection & CORS บน Safari
-async function sendDataToGoogleAppsScript(formData, pdfBlob) {
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyJTJz4wJJ8sE9EhCKIuj6q64s89pCC6HnNBN4eTraED93nNqUSE8wE4pPGiN6n-bUD/exec";
-
-    try {
-        const dateClean = (document.getElementById("currentDate")?.innerText || "").replace(/\//g, '-');
-        const plateClean = formData.plate.replace(/\s+/g, '_');
-
-        const inspectionImages = [];
-        for (const item of activeItems) {
-            const i = item.id;
-            const fileBlob = await getImageFromDB(Number(i));
-            if (fileBlob) {
-                const base64Data = await compressAndConvertToBase64(fileBlob, 800, 0.6);
-                const originalFileName = uploadedFileNames[i] || `item_${i}.jpg`;
-                const fileExt = originalFileName.substring(originalFileName.lastIndexOf('.'));
-                const formattedFileName = `item_${i}_${plateClean}_${dateClean}${fileExt}`;
-
-                inspectionImages.push({
-                    itemId: i,
-                    fileName: formattedFileName,
-                    mimeType: "image/jpeg",
-                    base64: base64Data,
-                    status: document.querySelector(`input[name="status${i}"]:checked`)?.value || "-"
-                });
-            }
-        }
-
-        const pdfBase64 = pdfBlob ? await blobToBase64(pdfBlob) : "";
-
-        const payload = {
-            inspector: formData.inspector,
-            vehicleType: formData.vehicleType,
-            plate: formData.plate,
-            station: formData.station,
-            inspectionDate: document.getElementById("currentDate")?.innerText || "-",
-            inspectionTime: document.getElementById("currentTime")?.innerText || "-",
-            pdfFileName: `Certificate_${plateClean}_${dateClean}.pdf`,
-            pdfBase64: pdfBase64,
-            images: inspectionImages
-        };
-
-        // ส่งแบบ mode: "no-cors" ข้ามปัญหา CORS บล็อกบน Safari iOS
-        await fetch(GAS_WEB_APP_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: {
-                "Content-Type": "text/plain;charset=utf-8"
-            },
-            body: JSON.stringify(payload)
-        });
-
-        console.log("✅ ส่งข้อมูลเข้า Google Apps Script เรียบร้อยแล้ว");
-    } catch (error) {
-        console.error("❌ เกิดข้อผิดพลาดขณะส่งข้อมูลไป Google Apps Script:", error);
-        throw error;
+        
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+        }, 2000);
     }
 }
 
 async function generateAndDownloadPDF(formData) {
     const submitBtn = document.getElementById("submitBtn");
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    
+    // 🚀 [เทคนิคสำคัญสำหรับ iOS]: เปิด Window สำรองไว้ทันทีเมื่อกดยืนยัน (ป้องกัน Safari บล็อก Popup)
+    let newTabWindow = null;
+    if (isIOS) {
+        newTabWindow = window.open('about:blank', '_blank');
+        if (newTabWindow) {
+            newTabWindow.document.write("<html><head><title>กำลังสร้างไฟล์ PDF...</title></head><body style='font-family:sans-serif; text-align:center; padding-top:50px;'><h2>⏳ กำลังสร้างใบ Certificate กรุณารอสักครู่...</h2></body></html>");
+        }
+    }
 
     const dateStr = document.getElementById("currentDate")?.innerText || "-";
     const timeStr = document.getElementById("currentTime")?.innerText || "-";
@@ -600,13 +520,13 @@ async function generateAndDownloadPDF(formData) {
 
         const worker = html2pdf().set(opt).from(element);
 
-        // 1. สร้าง Blob ของ PDF
+        // 1. สร้าง Blob สำหรับส่งเข้า Google Apps Script และดาวน์โหลด
         const pdfBlob = await worker.output('blob');
 
-        // 2. ดาวน์โหลด/เปิดไฟล์ PDF (รองรับทั้ง iOS และ Desktop)
-        downloadBlobForIOS(pdfBlob, pdfFilename);
+        // 2. เรียกใช้ฟังก์ชันดาวน์โหลดไฟล์ PDF ที่รองรับทั้ง Android และ iOS
+        downloadPdfFile(pdfBlob, pdfFilename, newTabWindow);
 
-        // 3. ส่งข้อมูลเข้า Google Sheet / Google Drive
+        // 3. ส่งข้อมูลเข้า Google Sheet / Google Drive แบบเบื้องหลัง
         await sendDataToGoogleAppsScript(formData, pdfBlob);
 
         alert("✅ ส่งข้อมูลเข้า Google Drive และสร้างใบ Certificate เรียบร้อยแล้ว!");
@@ -618,6 +538,9 @@ async function generateAndDownloadPDF(formData) {
 
     } catch (error) {
         console.error("PDF & Data Submission Error:", error);
+        if (newTabWindow && !newTabWindow.closed) {
+            newTabWindow.close();
+        }
         alert("⚠️ เกิดข้อผิดพลาดในการส่งข้อมูลเข้า Google Sheet/Drive หรือสร้าง PDF");
     } finally {
         if (pdfWrapper) {
@@ -744,87 +667,4 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
-async function handleSubmitProcess() {
-  const submitBtn = document.getElementById("submitBtn"); // ID ของปุ่มกดส่ง
-  const modal = document.getElementById("confirmModal");   // ID ของ Modal ป๊อบอัพ
 
-  try {
-    // Step 1: ล็อกปุ่มกดและแสดงสถานะกำลังส่งข้อมูล
-    submitBtn.disabled = true;
-    submitBtn.innerText = "⏳ กำลังบันทึกข้อมูลลงระบบ...";
-
-    // Step 2: เตรียม Payload ข้อมูล (ส่งภาพและข้อมูลทั่วไป)
-    const payload = {
-      inspector: document.getElementById("inspectorInput")?.value || "",
-      vehicleType: document.getElementById("vehicleTypeInput")?.value || "",
-      plate: document.getElementById("plateInput")?.value || "ไม่ระบุทะเบียน",
-      station: document.getElementById("stationInput")?.value || "",
-      inspectionDate: document.getElementById("inspectionDateInput")?.value || "",
-      inspectionTime: document.getElementById("inspectionTimeInput")?.value || "",
-      images: getUploadedImagesBase64() // ฟังก์ชันดึงรูปภาพแบบ Base64 ของคุณ
-    };
-
-    // Step 3: ยิงส่งข้อมูลไปยัง Apps Script ก่อน (ยังไม่สร้าง PDF)
-    const gasAppUrl = "YOUR_APPS_SCRIPT_WEB_APP_URL";
-    
-    const response = await fetch(gasAppUrl, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload)
-    });
-
-    const result = await response.json();
-
-    // Step 4: ตรวจสอบผลลัพธ์การบันทึก
-    if (result.status === "success") {
-      
-      // ปรับข้อความปุ่มระหว่างสร้าง PDF
-      submitBtn.innerText = "📄 กำลังสร้างเอกสาร PDF...";
-
-      // Step 5: ปิด Modal ป๊อบอัพยืนยันเพื่อเคลียร์หน้าจอ
-      if (modal) {
-        modal.style.display = "none";
-      }
-
-      // Step 6: สร้าง PDF Blob จาก Element หน้าเอกสารของคุณ
-      const pdfElement = document.getElementById("pdfCertificateView"); // Element หน้าเอกสารที่จะแปลงเป็น PDF
-      
-      // กำหนดคอนฟิกของ html2pdf
-      const opt = {
-        margin:       0.5,
-        filename:     `Certificate_${payload.plate}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2 },
-        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
-      };
-
-      // สร้าง PDF Blob
-      const pdfBlob = await html2pdf().set(opt).from(pdfElement).output('blob');
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-
-      // Step 7: เด้งเปิดหน้า PDF ใน Tab ใหม่
-      window.open(pdfUrl, '_blank');
-
-      // Step 8: สั่งดาวน์โหลดลงเครื่องอัตโนมัติ
-      const downloadLink = document.createElement("a");
-      downloadLink.href = pdfUrl;
-      downloadLink.download = `Certificate_${payload.plate}.pdf`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-
-      alert("บันทึกข้อมูลและสร้าง PDF เรียบร้อยแล้ว!");
-
-    } else {
-      throw new Error(result.error || "ไม่สามารถบันทึกข้อมูลได้");
-    }
-
-  } catch (error) {
-    console.error("Process Error:", error);
-    alert("เกิดข้อผิดพลาด: " + error.message);
-  } finally {
-    // คืนค่าสถานะปุ่มกด
-    submitBtn.disabled = false;
-    submitBtn.innerText = "ตกลง / ยืนยัน";
-  }
-}
