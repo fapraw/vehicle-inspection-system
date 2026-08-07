@@ -515,23 +515,28 @@ async function generateAndDownloadPDF(formData) {
     try {
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.innerText = "⏳ กำลังส่งข้อมูล และสร้าง PDF...";
+            submitBtn.innerText = "⏳ กำลังสร้าง PDF...";
         }
 
         const worker = html2pdf().set(opt).from(element);
 
-        // 1. สร้าง Blob สำหรับส่งเข้า Google Apps Script และดาวน์โหลด
+        // 1. สร้าง Blob ของ PDF
         const pdfBlob = await worker.output('blob');
 
-        // 2. เรียกใช้ฟังก์ชันดาวน์โหลดไฟล์ PDF ที่รองรับทั้ง Android และ iOS
+        // 2. [ทำก่อน] แสดงผล/ดาวน์โหลดไฟล์ PDF ลงเครื่องทันที (ทั้ง iOS และ Android)
         downloadPdfFile(pdfBlob, pdfFilename, newTabWindow);
 
-        // 3. ส่งข้อมูลเข้า Google Sheet / Google Drive แบบเบื้องหลัง
+        // 3. ปรับข้อความสถานะปุ่ม เพื่อแจ้งผู้ใช้ว่ากำลังส่งข้อมูลเข้าระบบเบื้องหลัง
+        if (submitBtn) {
+            submitBtn.innerText = "⏳ กำลังส่งข้อมูลเข้าระบบ...";
+        }
+
+        // 4. [ทำทีหลัง] ส่งข้อมูลและไฟล์ PDF เข้า Google Apps Script (Drive / Sheet)
         await sendDataToGoogleAppsScript(formData, pdfBlob);
 
-        alert("✅ ส่งข้อมูลเข้า Google Drive และสร้างใบ Certificate เรียบร้อยแล้ว!");
+        alert("✅ สร้างใบ Certificate และส่งข้อมูลเข้าระบบเรียบร้อยแล้ว!");
 
-        // 4. ล้างข้อมูลหลังส่งสำเร็จ
+        // 5. ล้างข้อมูลหลังส่งสำเร็จ
         localStorage.removeItem("inspectionFormData");
         await clearAllImageData();
         location.reload();
@@ -541,7 +546,8 @@ async function generateAndDownloadPDF(formData) {
         if (newTabWindow && !newTabWindow.closed) {
             newTabWindow.close();
         }
-        alert("⚠️ เกิดข้อผิดพลาดในการส่งข้อมูลเข้า Google Sheet/Drive หรือสร้าง PDF");
+        alert("⚠️ เกิดข้อผิดพลาดในการสร้าง PDF หรือส่งข้อมูลเข้า Google Sheet/Drive");
+    }
     } finally {
         if (pdfWrapper) {
             pdfWrapper.style.position = "absolute";
